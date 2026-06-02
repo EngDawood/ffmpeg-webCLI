@@ -63,6 +63,25 @@ Remove all embedded metadata -- GPS coordinates, camera make/model, creation tim
 ### 🛠 Raw FFmpeg
 Full access to the ffmpeg command line directly in the browser. Type any arguments into the text area; they are inserted after `-i input` and before the output filename. Choose the output file extension and optionally bypass the trim range. A live **full command preview** updates as you type, showing the exact command that will be executed. Quoted values containing spaces are handled correctly.
 
+An **Example Commands** library (collapsible) provides one-click recipes to get started:
+
+| Example | What it does |
+|---|---|
+| 💧 Add text watermark | Overlays `drawtext` with shadow at top-left |
+| 📝 Burn subtitles (.srt) | Hard-bakes a `.srt` subtitle file into the video |
+| 🎨 Convert to grayscale | `format=gray` + H.264 re-encode |
+| 🔊 Loudness normalize | `loudnorm` filter, stream-copies video |
+| 📦 Lossless remux (copy) | `-c copy` — change container, zero quality loss |
+| 📐 Letterbox / pillarbox | Scales to 1920×1080, pads with black bars |
+| 🌀 Denoise (hqdn3d) | Temporal + spatial denoising |
+| 🔍 Sharpen (unsharp) | `unsharp` mask filter |
+| 🎯 Stabilize (deshake) | `deshake` motion stabilization |
+| 🌑 Vignette effect | `vignette` filter darkens edges |
+| 🔇 Extract audio as WAV | `-vn -acodec pcm_s16le` lossless audio export |
+| 🖼 Extract first frame | `-vframes 1` saves a single PNG |
+
+Clicking a recipe fills in the arguments and extension fields instantly.
+
 ---
 
 ## How It Works

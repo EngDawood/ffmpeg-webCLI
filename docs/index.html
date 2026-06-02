@@ -173,6 +173,19 @@
     @media (max-width: 380px) {
       .ops-grid { grid-template-columns: 1fr; }
     }
+
+    /* ── Raw FFmpeg example library ── */
+    .raw-examples-details { border: 1px solid var(--border); border-radius: 7px; overflow: hidden; margin-bottom: 10px; }
+    .raw-examples-details summary { padding: 8px 11px; cursor: pointer; font-size: 0.75rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; user-select: none; list-style: none; display: flex; align-items: center; gap: 6px; background: var(--surface3); }
+    .raw-examples-details summary::-webkit-details-marker { display: none; }
+    .raw-examples-details summary::marker { display: none; }
+    .rex-arrow { display: inline-block; font-style: normal; transition: transform .18s; font-size: 0.7rem; }
+    .raw-examples-details[open] .rex-arrow { transform: rotate(90deg); }
+    .rex-list { padding: 7px; display: grid; gap: 5px; background: var(--surface2); }
+    .raw-example-btn { width: 100%; background: var(--surface); border: 1px solid var(--border); border-radius: 6px; padding: 7px 10px; cursor: pointer; text-align: left; display: flex; align-items: baseline; gap: 10px; transition: border-color .15s, background .15s; }
+    .raw-example-btn:hover { border-color: var(--accent); background: rgba(99,102,241,.07); }
+    .rex-label { font-size: 0.8rem; font-weight: 600; color: var(--text); white-space: nowrap; flex-shrink: 0; }
+    .rex-code { font-family: 'SF Mono', 'Fira Code', 'Courier New', monospace; font-size: 0.7rem; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; min-width: 0; }
   </style>
 </head>
 <body>
@@ -519,6 +532,13 @@
           <!-- Raw / Advanced -->
           <div class="op-panel hidden" id="panel-raw">
             <h4>Raw FFmpeg</h4>
+
+            <!-- Example library -->
+            <details class="raw-examples-details" id="rawExamplesPanel">
+              <summary><span class="rex-arrow">&#9658;</span>&nbsp;Example Commands</summary>
+              <div class="rex-list" id="rawExamplesList"><!-- populated by JS --></div>
+            </details>
+
             <div style="margin-bottom:8px">
               <label class="lbl">Arguments &mdash; inserted after <code style="color:var(--accent);font-size:.8em">-i input</code>, before the output filename</label>
               <textarea id="rawArgs" placeholder="-vf scale=1280:-2 -c:v libx264 -crf 23 -preset fast -c:a aac" oninput="updateRawPreview()"></textarea>
@@ -885,6 +905,39 @@ function updateSizeEstimate() {
   wrap.classList.remove('hidden');
 }
 
+// ── Raw FFmpeg example library ──────────────────────
+const RAW_EXAMPLES = [
+  { label: '💧 Add text watermark',      args: `-vf "drawtext=text='WATERMARK':fontcolor=white@0.8:fontsize=36:x=20:y=20:shadowcolor=black:shadowx=2:shadowy=2" -c:v libx264 -crf 23 -preset fast -c:a copy`, ext: 'mp4' },
+  { label: '📝 Burn subtitles (.srt)',    args: '-vf subtitles=subs.srt -c:v libx264 -crf 23 -preset fast -c:a copy',                                                                                              ext: 'mp4' },
+  { label: '🎨 Convert to grayscale',    args: '-vf format=gray -c:v libx264 -crf 23 -preset fast -c:a copy',                                                                                                     ext: 'mp4' },
+  { label: '🔊 Loudness normalize',      args: '-af loudnorm -c:v copy',                                                                                                                                          ext: 'mp4' },
+  { label: '📦 Lossless remux (copy)',   args: '-c copy',                                                                                                                                                          ext: 'mp4' },
+  { label: '📐 Letterbox / pillarbox',   args: '-vf "scale=1920:1080:force_original_aspect_ratio=decrease,pad=1920:1080:(ow-iw)/2:(oh-ih)/2:black" -c:v libx264 -crf 23 -c:a aac',                                ext: 'mp4' },
+  { label: '🌀 Denoise (hqdn3d)',        args: '-vf hqdn3d -c:v libx264 -crf 23 -preset fast -c:a copy',                                                                                                         ext: 'mp4' },
+  { label: '🔍 Sharpen (unsharp)',       args: '-vf unsharp=5:5:1.5:5:5:0 -c:v libx264 -crf 23 -preset fast -c:a copy',                                                                                          ext: 'mp4' },
+  { label: '🎯 Stabilize (deshake)',     args: '-vf deshake -c:v libx264 -crf 23 -preset fast -c:a copy',                                                                                                         ext: 'mp4' },
+  { label: '🌑 Vignette effect',         args: '-vf vignette=PI/4 -c:v libx264 -crf 23 -preset fast -c:a copy',                                                                                                   ext: 'mp4' },
+  { label: '🔇 Extract audio as WAV',    args: '-vn -acodec pcm_s16le',                                                                                                                                           ext: 'wav' },
+  { label: '🖼 Extract first frame',     args: '-vframes 1',                                                                                                                                                       ext: 'png' },
+];
+
+function initRawExamples() {
+  const list = document.getElementById('rawExamplesList');
+  RAW_EXAMPLES.forEach(ex => {
+    const btn = document.createElement('button');
+    btn.className = 'raw-example-btn';
+    const preview = ex.args.length > 55 ? ex.args.slice(0, 52) + '\u2026' : ex.args;
+    btn.innerHTML = `<span class="rex-label">${ex.label}</span><code class="rex-code">${preview}</code>`;
+    btn.onclick = () => {
+      document.getElementById('rawArgs').value = ex.args;
+      document.getElementById('rawExt').value  = ex.ext;
+      updateRawPreview();
+      document.getElementById('rawExamplesPanel').removeAttribute('open');
+    };
+    list.appendChild(btn);
+  });
+}
+
 // ── Raw FFmpeg preview + arg parser ───────────────────
 function parseShellArgs(str) {
   const result = [];
@@ -1217,6 +1270,7 @@ function mime(ext) {
 
 // Init trim display
 updateTrim();
+initRawExamples();
 </script>
 </body>
 </html>
