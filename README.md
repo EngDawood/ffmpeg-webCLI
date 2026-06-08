@@ -197,7 +197,7 @@ Reduce video noise with the `hqdn3d` (high-quality 3D denoise) filter, which com
 
 Re-encodes video with H.264; audio is stream-copied.
 
-### ↩ Boomerang
+### ⇄ Boomerang
 Creates the classic boomerang loop effect: the clip plays **forward then immediately in reverse** in a single output file. Uses ffmpeg's `reverse` filter concatenated with the original via the `concat` filter. Trim is respected for the forward segment. Audio is removed (the reverse of audio rarely sounds intentional).
 
 ### ◉ Sharpen / Blur
