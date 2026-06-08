@@ -1288,7 +1288,7 @@ async function requestWakeLock() {
     if ('wakeLock' in navigator) {
       wakeLock = await navigator.wakeLock.request('screen');
       console.log('[PWA] Screen Wake Lock acquired');
-      addLog('📱 Screen will stay on during processing', 'ok');
+      addLog('Screen will stay on during processing', 'ok', 'fas fa-mobile-screen-button');
     }
   } catch (err) {
     console.error('[PWA] Wake Lock request failed:', err);
@@ -1560,13 +1560,13 @@ function updateSizeEstimate() {
   const ratio   = estimated / srcSize;
   const deltaEl = document.getElementById('sizeDelta');
   if (ratio < 0.95) {
-    deltaEl.textContent = `↓ ${Math.round((1 - ratio) * 100)}% smaller`;
+    deltaEl.innerHTML  = `<i class="fas fa-arrow-down"></i> ${Math.round((1 - ratio) * 100)}% smaller`;
     deltaEl.className   = 'size-delta smaller';
   } else if (ratio > 1.05) {
-    deltaEl.textContent = `↑ ${Math.round((ratio - 1) * 100)}% larger`;
+    deltaEl.innerHTML  = `<i class="fas fa-arrow-up"></i> ${Math.round((ratio - 1) * 100)}% larger`;
     deltaEl.className   = 'size-delta larger';
   } else {
-    deltaEl.textContent = '≈ same size';
+    deltaEl.innerHTML  = `<i class="fas fa-equals"></i> same size`;
     deltaEl.className   = 'size-delta';
   }
   wrap.classList.remove('hidden');
@@ -1574,19 +1574,19 @@ function updateSizeEstimate() {
 
 // ── Raw FFmpeg example library ──────────────────────
 const RAW_EXAMPLES = [
-  { label: '� Colour-bar watermark',    args: '-vf "drawbox=x=iw-220:y=ih-55:w=210:h=45:color=black@0.5:t=fill,drawbox=x=iw-218:y=ih-53:w=206:h=41:color=white@0.25:t=fill" -c:v libx264 -crf 23 -preset fast -c:a copy', ext: 'mp4' },
-  { label: '🎞 Cap framerate to 24 fps',  args: '-vf fps=24 -c:v libx264 -crf 23 -preset fast -c:a copy',                                                                                                          ext: 'mp4' },
-  { label: '🎨 Convert to grayscale',    args: '-vf format=gray -c:v libx264 -crf 23 -preset fast -c:a copy',                                                                                                     ext: 'mp4' },
-  { label: '🔊 Loudness normalize',      args: '-af loudnorm -c:v copy',                                                                                                                                          ext: 'mp4' },
-  { label: '📦 Lossless remux (copy)',   args: '-c copy',                                                                                                                                                          ext: 'mp4' },
-  { label: '📐 Letterbox / pillarbox',   args: '-vf "scale=1920:1080:force_original_aspect_ratio=decrease,pad=1920:1080:(ow-iw)/2:(oh-ih)/2:black" -c:v libx264 -crf 23 -c:a aac',                                ext: 'mp4' },
-  { label: '🌀 Denoise (hqdn3d)',        args: '-vf hqdn3d -c:v libx264 -crf 23 -preset fast -c:a copy',                                                                                                         ext: 'mp4' },
-  { label: '🔍 Sharpen (unsharp)',       args: '-vf unsharp=5:5:1.5:5:5:0 -c:v libx264 -crf 23 -preset fast -c:a copy',                                                                                          ext: 'mp4' },
-  { label: '🎯 Stabilize (deshake)',     args: '-vf deshake -c:v libx264 -crf 23 -preset fast -c:a copy',                                                                                                         ext: 'mp4' },
-  { label: '🌑 Vignette effect',         args: '-vf vignette=PI/4 -c:v libx264 -crf 23 -preset fast -c:a copy',                                                                                                   ext: 'mp4' },
-  { label: '🔇 Extract audio as WAV',    args: '-vn -acodec pcm_s16le',                                                                                                                                           ext: 'wav' },
-  { label: '🖼 Extract first frame',     args: '-vframes 1',                                                                                                                                                       ext: 'png' },
-  { label: '🎵 Replace audio track',     args: '-i input2.mp3 -map 0:v:0 -map 1:a:0 -shortest -c:v copy -c:a aac',  ext: 'mp4', needsInput2: true  },
+  { label: '<i class="fas fa-stamp"></i> Color-bar watermark',    args: '-vf "drawbox=x=iw-220:y=ih-55:w=210:h=45:color=black@0.5:t=fill,drawbox=x=iw-218:y=ih-53:w=206:h=41:color=white@0.25:t=fill" -c:v libx264 -crf 23 -preset fast -c:a copy', ext: 'mp4' },
+  { label: '<i class="fas fa-gauge-high"></i> Cap framerate to 24 fps',  args: '-vf fps=24 -c:v libx264 -crf 23 -preset fast -c:a copy',                                                                                                          ext: 'mp4' },
+  { label: '<i class="fas fa-palette"></i> Convert to grayscale',    args: '-vf format=gray -c:v libx264 -crf 23 -preset fast -c:a copy',                                                                                                     ext: 'mp4' },
+  { label: '<i class="fas fa-volume-high"></i> Loudness normalize',      args: '-af loudnorm -c:v copy',                                                                                                                                          ext: 'mp4' },
+  { label: '<i class="fas fa-box"></i> Lossless remux (copy)',   args: '-c copy',                                                                                                                                                          ext: 'mp4' },
+  { label: '<i class="fas fa-tv"></i> Letterbox / pillarbox',   args: '-vf "scale=1920:1080:force_original_aspect_ratio=decrease,pad=1920:1080:(ow-iw)/2:(oh-ih)/2:black" -c:v libx264 -crf 23 -c:a aac',                                ext: 'mp4' },
+  { label: '<i class="fas fa-broom"></i> Denoise (hqdn3d)',        args: '-vf hqdn3d -c:v libx264 -crf 23 -preset fast -c:a copy',                                                                                                         ext: 'mp4' },
+  { label: '<i class="fas fa-magnifying-glass"></i> Sharpen (unsharp)',       args: '-vf unsharp=5:5:1.5:5:5:0 -c:v libx264 -crf 23 -preset fast -c:a copy',                                                                                          ext: 'mp4' },
+  { label: '<i class="fas fa-bullseye"></i> Stabilize (deshake)',     args: '-vf deshake -c:v libx264 -crf 23 -preset fast -c:a copy',                                                                                                         ext: 'mp4' },
+  { label: '<i class="fas fa-moon"></i> Vignette effect',         args: '-vf vignette=PI/4 -c:v libx264 -crf 23 -preset fast -c:a copy',                                                                                                   ext: 'mp4' },
+  { label: '<i class="fas fa-file-audio"></i> Extract audio as WAV',    args: '-vn -acodec pcm_s16le',                                                                                                                                           ext: 'wav' },
+  { label: '<i class="fas fa-image"></i> Extract first frame',     args: '-vframes 1',                                                                                                                                                       ext: 'png' },
+  { label: '<i class="fas fa-music"></i> Replace audio track',     args: '-i input2.mp3 -map 0:v:0 -map 1:a:0 -shortest -c:v copy -c:a aac',  ext: 'mp4', needsInput2: true  },
 ];
 
 function initRawExamples() {
@@ -2117,11 +2117,18 @@ function syncProcessBtn() {
   }
 }
 
-function addLog(msg, type = '') {
+function addLog(msg, type = '', icon = '') {
   const log  = document.getElementById('log');
   const line = document.createElement('div');
   line.className = 'log-line' + (type ? ' ' + type : '');
-  line.textContent = msg;
+  if (icon) {
+    const i = document.createElement('i');
+    i.className = icon;
+    line.appendChild(i);
+    line.appendChild(document.createTextNode(' ' + msg));
+  } else {
+    line.textContent = msg;
+  }
   log.appendChild(line);
   log.scrollTop = log.scrollHeight;
 }
@@ -2167,7 +2174,7 @@ window.addEventListener('beforeinstallprompt', (e) => {
 // Handle app installed event
 window.addEventListener('appinstalled', () => {
   console.log('[PWA] App installed');
-  addLog('✅ App installed successfully!', 'ok');
+  addLog('App installed successfully!', 'ok', 'fas fa-circle-check');
 });
 
 // ── Service Worker Registration ─────────────────────────────────
@@ -2197,7 +2204,7 @@ if ('serviceWorker' in navigator) {
           if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
             // New service worker is ready, show update notification
             console.log('[PWA] New version available');
-            addLog('ℹ️ New version available - reload to update', 'ok');
+            addLog('New version available - reload to update', 'ok', 'fas fa-circle-info');
           }
         });
       });
@@ -2205,12 +2212,12 @@ if ('serviceWorker' in navigator) {
       // Log offline/online status
       window.addEventListener('online', () => {
         console.log('[PWA] Back online');
-        addLog('✅ Back online', 'ok');
+        addLog('Back online', 'ok', 'fas fa-wifi');
       });
 
       window.addEventListener('offline', () => {
         console.log('[PWA] Going offline');
-        addLog('⚠️ Offline - working with cached resources', 'warn');
+        addLog('Offline - working with cached resources', 'warn', 'fas fa-triangle-exclamation');
       });
     } catch (err) {
       console.error('[PWA] Service Worker registration failed:', err);
