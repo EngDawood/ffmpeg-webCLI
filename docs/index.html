@@ -122,6 +122,7 @@
       font-family: 'SF Mono', 'Fira Code', 'Courier New', monospace; resize: vertical; min-height: 76px; line-height: 1.55;
     }
     input:focus, select:focus, textarea:focus { border-color: var(--accent); }
+    select:disabled { opacity: 0.6; cursor: not-allowed; background: var(--surface2); }
     .cmd-preview { font-family: 'SF Mono', 'Fira Code', 'Courier New', monospace; font-size: 0.72rem; background: #080a10; color: #7dd3fc; padding: 10px 12px; border-radius: 6px; word-break: break-all; line-height: 1.6; margin-top: 4px; white-space: pre-wrap; min-height: 36px; }
     .hint { font-size: 0.72rem; color: var(--muted); margin-top: 6px; }
 
@@ -1107,6 +1108,7 @@ let vidDur    = 0;
 let currentOp    = 'convert';
 let outBlob      = null;
 let outExt       = 'mp4';
+let lastFormatBeforeGif = 'mp4';  // Store format when switching to gif, restore when switching away
 let rawInput2File = null;
 let rawInput2Ext  = '';
 let subtitleFile  = null;
@@ -1702,6 +1704,20 @@ function setOp(op) {
     note.innerHTML = '<i class="fas fa-circle-info"></i> &ldquo;' + name + '&rdquo; is multi-input or whole-file and can&rsquo;t be chained. Use Single mode for it.';
     return;
   }
+  
+  // Handle GIF format selection: auto-lock to GIF output, disable dropdown
+  const outFmtDropdown = document.getElementById('singleOutFmt');
+  if (currentOp !== 'gif' && op === 'gif') {
+    // Switching TO gif: save current format and lock to gif
+    lastFormatBeforeGif = outFmtDropdown.value;
+    outFmtDropdown.value = 'gif';
+    outFmtDropdown.disabled = true;
+  } else if (currentOp === 'gif' && op !== 'gif') {
+    // Switching AWAY from gif: restore previous format and unlock
+    outFmtDropdown.value = lastFormatBeforeGif;
+    outFmtDropdown.disabled = false;
+  }
+  
   currentOp = op;
   document.querySelectorAll('.op-tile').forEach(b => b.classList.remove('active'));
   document.getElementById('op-' + op).classList.add('active');
