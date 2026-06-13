@@ -1575,6 +1575,7 @@ function toggleBatchMode() {
     updateBatchQueueUI();
     addLog('Batch mode disabled. Single file mode active.', 'ok');
   }
+  syncProcessBtn();
 }
 
 function handleBatchFiles(files) {
@@ -1591,6 +1592,7 @@ function handleBatchFiles(files) {
   }
   updateBatchQueueUI();
   addLog(`Added ${batchQueue.length} file(s) to batch queue.`, 'ok');
+  syncProcessBtn();
 }
 
 function updateBatchQueueUI() {
@@ -1627,6 +1629,7 @@ function updateBatchQueueUI() {
 function removeBatchFile(index) {
   batchQueue.splice(index, 1);
   updateBatchQueueUI();
+  syncProcessBtn();
 }
 
 async function downloadBatchFile(index) {
@@ -1665,6 +1668,7 @@ function clearBatchQueue() {
   batchCurrent = null;
   updateBatchQueueUI();
   addLog('Batch queue cleared.', 'ok');
+  syncProcessBtn();
 }
 
 // ── Trim ──────────────────────────────────────────────
@@ -2612,7 +2616,9 @@ function isLoaded() {
 
 function syncProcessBtn() {
   const btn = document.getElementById('processBtn');
-  if (!inputFile) {
+  const hasInput = inputFile || (batchMode && batchQueue.length > 0);
+  
+  if (!hasInput) {
     btn.disabled = true;
     btn.innerHTML = '<i class="fas fa-gear"></i> Process Video';
   } else if (!isLoaded()) {
@@ -2620,7 +2626,8 @@ function syncProcessBtn() {
     btn.innerHTML = '<i class="fas fa-download"></i> Load ffmpeg &amp; Process';
   } else {
     btn.disabled = false;
-    btn.innerHTML = '<i class="fas fa-gear"></i> Process Video';
+    const label = batchMode ? 'Process Queue' : 'Process Video';
+    btn.innerHTML = `<i class="fas fa-gear"></i> ${label}`;
   }
   refreshStackControls();
   if (stackMode) renderStack();
