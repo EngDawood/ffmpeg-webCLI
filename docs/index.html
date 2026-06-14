@@ -2599,6 +2599,9 @@ async function runBatch() {
       document.getElementById('progPct').textContent = '0%';
     }, 1000);
     
+    // Update batch outputs display (in case any files were completed)
+    updateBatchOutputsDisplay();
+    
     // Re-enable operation tiles
     opTiles.forEach(t => t.style.pointerEvents = 'auto');
     opTiles.forEach(t => t.style.opacity = '1');
@@ -2733,7 +2736,7 @@ function updateBatchOutputsDisplay() {
 }
 
 function selectBatchOutput(batchIdx) {
-  if (!batchIdx) return;
+  if (batchIdx == null || batchIdx === '') return;
   const item = batchQueue[parseInt(batchIdx)];
   if (!item) return;
   
