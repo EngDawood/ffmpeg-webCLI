@@ -320,7 +320,7 @@
   <!-- Status -->
   <div class="statusbar">
     <div class="dot" id="statusDot"></div>
-    <span id="statusText">ffmpeg not loaded — click "Load ffmpeg" to begin</span>
+    <span id="statusText">ffmpeg not loaded - click "Load ffmpeg" to begin</span>
     <button class="btn btn-primary ml-auto" id="loadBtn" onclick="loadFFmpeg()"><i class="fas fa-play"></i> Load ffmpeg (~31 MB)</button>
   </div>
 
@@ -464,11 +464,11 @@
               <div class="form-group">
                 <label class="lbl">Preset</label>
                 <select id="rcPreset" onchange="updateSizeEstimate()">
-                  <option value="ultrafast">ultrafast — fastest</option>
+                  <option value="ultrafast">ultrafast - fastest</option>
                   <option value="fast">fast</option>
-                  <option value="medium" selected>medium — balanced</option>
-                  <option value="slow">slow — better compression</option>
-                  <option value="veryslow">veryslow — best compression</option>
+                  <option value="medium" selected>medium - balanced</option>
+                  <option value="slow">slow - better compression</option>
+                  <option value="veryslow">veryslow - best compression</option>
                 </select>
               </div>
               <div class="form-group">
@@ -528,7 +528,7 @@
               <div class="form-group">
                 <label class="lbl">Multiplier</label>
                 <select id="speedVal" onchange="updateSizeEstimate()">
-                  <option value="0.25">0.25× — slow motion</option>
+                  <option value="0.25">0.25× - slow motion</option>
                   <option value="0.5">0.5×</option>
                   <option value="0.75">0.75×</option>
                   <option value="1.5">1.5×</option>
@@ -609,7 +609,7 @@
           <!-- Reverse -->
           <div class="op-panel hidden" id="panel-reverse">
             <h4>Reverse</h4>
-            <p class="hint" style="font-size:.82rem;color:var(--text)">Plays video and audio backwards. The whole clip is buffered in memory — keep clips under ~2 minutes for best results.</p>
+            <p class="hint" style="font-size:.82rem;color:var(--text)">Plays video and audio backwards. The whole clip is buffered in memory - keep clips under ~2 minutes for best results.</p>
           </div>
 
           <!-- Fade -->
@@ -692,9 +692,9 @@
               <div class="form-group">
                 <label class="lbl">Whisper Model</label>
                 <select id="autoCaptionModel" onchange="updateAutoCaptionInfo()">
-                  <option value="tiny" selected>Tiny (39 MB) — fast, lower quality</option>
-                  <option value="base">Base (140 MB) — balanced</option>
-                  <option value="small">Small (466 MB) — higher quality, slower</option>
+                  <option value="tiny" selected>Tiny (39 MB) - fast, lower quality</option>
+                  <option value="base">Base (140 MB) - balanced</option>
+                  <option value="small">Small (466 MB) - higher quality, slower</option>
                 </select>
               </div>
               <div class="form-group">
@@ -722,7 +722,7 @@
             <h4>Volume</h4>
             <div class="form-row">
               <div class="form-group">
-                <label class="lbl">Multiplier — <span id="volVal">1.00</span>×</label>
+                <label class="lbl">Multiplier - <span id="volVal">1.00</span>×</label>
                 <input type="range" id="volRange" min="0" max="4" step="0.05" value="1"
                        oninput="document.getElementById('volVal').textContent=parseFloat(this.value).toFixed(2);updateSizeEstimate()">
               </div>
@@ -785,12 +785,12 @@
             </div>
             <div class="form-row">
               <div class="form-group">
-                <label class="lbl">Original audio — <span id="mixOrigVolVal">1.00</span></label>
+                <label class="lbl">Original audio - <span id="mixOrigVolVal">1.00</span></label>
                 <input type="range" id="mixOrigVol" min="0" max="2" step="0.05" value="1"
                        oninput="document.getElementById('mixOrigVolVal').textContent=parseFloat(this.value).toFixed(2)">
               </div>
               <div class="form-group">
-                <label class="lbl">Music volume — <span id="mixMusicVolVal">0.30</span></label>
+                <label class="lbl">Music volume - <span id="mixMusicVolVal">0.30</span></label>
                 <input type="range" id="mixMusicVol" min="0" max="2" step="0.05" value="0.3"
                        oninput="document.getElementById('mixMusicVolVal').textContent=parseFloat(this.value).toFixed(2)">
               </div>
@@ -809,7 +809,7 @@
                 <input type="file" id="concatFileInput" style="display:none" accept="video/*" onchange="onConcatFileChange(this)">
               </div>
             </div>
-            <p class="hint">Uses the concat filter — different resolutions and codecs are handled by re-encoding to H.264/AAC. Trim applies to the first clip only.</p>
+            <p class="hint">Uses the concat filter - different resolutions and codecs are handled by re-encoding to H.264/AAC. Trim applies to the first clip only.</p>
           </div>
 
           <!-- Side by Side -->
@@ -931,12 +931,12 @@
               <div class="form-group">
                 <label class="lbl">Target Ratio</label>
                 <select id="padAR">
-                  <option value="16:9">16:9 — Landscape (YouTube, TV)</option>
-                  <option value="9:16">9:16 — Portrait (Reels, Stories)</option>
-                  <option value="1:1">1:1 — Square (Instagram)</option>
-                  <option value="4:3">4:3 — Classic</option>
-                  <option value="4:5">4:5 — Portrait feed</option>
-                  <option value="21:9">21:9 — Cinematic</option>
+                  <option value="16:9">16:9 - Landscape (YouTube, TV)</option>
+                  <option value="9:16">9:16 - Portrait (Reels, Stories)</option>
+                  <option value="1:1">1:1 - Square (Instagram)</option>
+                  <option value="4:3">4:3 - Classic</option>
+                  <option value="4:5">4:5 - Portrait feed</option>
+                  <option value="21:9">21:9 - Cinematic</option>
                 </select>
               </div>
               <div class="form-group">
@@ -958,7 +958,7 @@
               <div class="form-group">
                 <label class="lbl">Target Loudness</label>
                 <select id="normalizeTarget">
-                  <option value="-14">-14 LUFS — YouTube / Spotify</option>
+                  <option value="-14">-14 LUFS - YouTube / Spotify</option>
                   <option value="-16" selected>-16 LUFS — Podcasts / Apple</option>
                   <option value="-23">-23 LUFS — Broadcast (EBU R128)</option>
                 </select>

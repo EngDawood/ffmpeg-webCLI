@@ -17,7 +17,7 @@ A browser-based video editor powered by [ffmpeg.wasm](https://github.com/ffmpegw
 
 ✓ **32+ Video Operations** : GIF creation, format conversion, compression, trimming, effects, filters, auto-captioning, and more
 
-✓ **Batch Processing** : Process multiple videos at once with the same operation — or an entire **operation chain** — applied to every file; real-time progress, per-file preview, individual downloads, ZIP-all, and graceful fallback
+✓ **Batch Processing** : Process multiple videos at once with the same operation - or an entire **operation chain** - applied to every file; real-time progress, per-file preview, individual downloads, ZIP-all, and graceful fallback
 
 ✓ **Offline-First PWA** : Works completely offline after first use; install as a native app
 
@@ -64,7 +64,7 @@ ffmpeg-webCLI covers the common tasks of all of them, for free, with files that
 ## Use Cases
 
 ### ⛓ Operation Chaining (Stack Mode)
-Stack several compatible operations and run them in a **single pass**. Switch the Operations panel to **Stack (chain)** mode, configure an op, and click **Add to Stack** to queue it. The queue is an ordered, reorderable list — move items up/down or remove them — and a live **composed command preview** shows the exact `ffmpeg` invocation before you run it.
+Stack several compatible operations and run them in a **single pass**. Switch the Operations panel to **Stack (chain)** mode, configure an op, and click **Add to Stack** to queue it. The queue is an ordered, reorderable list - move items up/down or remove them - and a live **composed command preview** shows the exact `ffmpeg` invocation before you run it.
 
 All stacked operations are merged into one filter chain (`-vf "a,b,c"` / `-af "x,y"`) and encoded **only once**, so quality loss from repeated re-encoding is avoided. Any active trim is applied first as input seeking, then the chain runs, then the single encode targets your chosen output format. For example, crop → grayscale → convert-to-MP4 becomes:
 
@@ -72,11 +72,11 @@ All stacked operations are merged into one filter chain (`-vf "a,b,c"` / `-af "x
 ffmpeg -i input.mp4 -vf "crop=1280:720:0:0,eq=brightness=0:contrast=1:saturation=0" -c:v libx264 -preset fast -c:a aac output.mp4
 ```
 
-**Chainable:** Crop, Resize, Rotate/Flip, Adjust (brightness/contrast/saturation), Grayscale, Fade, Denoise, Sharpen/Blur, Speed, Pad/Letterbox and Volume — every single-input, frame-wise video/audio filter.
+**Chainable:** Crop, Resize, Rotate/Flip, Adjust (brightness/contrast/saturation), Grayscale, Fade, Denoise, Sharpen/Blur, Speed, Pad/Letterbox and Volume - every single-input, frame-wise video/audio filter.
 
 **Not chainable** (use Single mode): multi-input operations (Concatenate, Side by Side, Picture in Picture, Mix Audio, Embed Subtitles, Logo Overlay) and whole-file or different-output operations (GIF, Thumbnail, Boomerang, Media Info). These are disabled in Stack mode with an inline explanation.
 
-**Chaining + batch together:** Stack mode and batch mode combine — enable **Batch**, queue several files, switch to **Stack (chain)**, build your chain once, and click **Process Stack** to apply the *entire* chain to *every* queued file. Each file is composed against its own dimensions/duration (so crop, pad, and fade resolve per file) and encoded in a single pass, with results shown in the batch outputs panel.
+**Chaining + batch together:** Stack mode and batch mode combine - enable **Batch**, queue several files, switch to **Stack (chain)**, build your chain once, and click **Process Stack** to apply the *entire* chain to *every* queued file. Each file is composed against its own dimensions/duration (so crop, pad, and fade resolve per file) and encoded in a single pass, with results shown in the batch outputs panel.
 
 ### ▶ Batch Processing
 Process multiple video files with the same operation in a single session. Click the **Batch** toggle in the Input Video card to enable batch mode, then drop or select multiple files. Each file is queued with a status indicator:
@@ -85,7 +85,7 @@ Process multiple video files with the same operation in a single session. Click 
 - ✓ **Done** : completed successfully
 - ✗ **Error** : encountered an issue
 
-When you click **Process Queue**, ffmpeg runs through each file sequentially. The log shows real-time progress: `[X/total] Processing: filename`. Completed files appear in the **Batch Outputs** panel of the Output section, where you can pick any file to preview it in the player, download files individually, or grab everything at once with **ZIP All** — no need to wait for the entire batch to finish before downloading completed files.
+When you click **Process Queue**, ffmpeg runs through each file sequentially. The log shows real-time progress: `[X/total] Processing: filename`. Completed files appear in the **Batch Outputs** panel of the Output section, where you can pick any file to preview it in the player, download files individually, or grab everything at once with **ZIP All** - no need to wait for the entire batch to finish before downloading completed files.
 
 **Batch + Stack (chaining):** Batch isn't limited to a single operation. Switch the Operations panel to **Stack (chain)** while batch mode is on, build a chain, and **Process Stack** applies the whole chain to every queued file in one pass each. See [Operation Chaining](#-operation-chaining-stack-mode) above.
 
@@ -177,13 +177,13 @@ Generate **automatic captions** from speech using [OpenAI's Whisper](https://ope
 **Workflow:**
 1. **Extract** : Audio is extracted from the video at 16 kHz mono
 2. **Transcribe** : Whisper processes the audio in 30-second chunks with 5-second overlap to generate accurate captions
-3. **Review & Edit** : Transcript appears in a textarea as SRT format — edit any caption before embedding
+3. **Review & Edit** : Transcript appears in a textarea as SRT format - edit any caption before embedding
 4. **Embed** : Click **Confirm & Embed** to mux the subtitles as a soft track into the output video (same format options as Embed Subtitles)
 
 **Model Selection** (choose speed vs. accuracy):
-- **Tiny** (39 MB) : Fastest, lower quality — good for quick turnarounds or speech-only content
-- **Base** (140 MB) : Balanced speed and accuracy — recommended for most videos
-- **Small** (466 MB) : Higher quality, slower — best for heavily accented or technical speech
+- **Tiny** (39 MB) : Fastest, lower quality - good for quick turnarounds or speech-only content
+- **Base** (140 MB) : Balanced speed and accuracy - recommended for most videos
+- **Small** (466 MB) : Higher quality, slower - best for heavily accented or technical speech
 
 Models are lazy-loaded and cached on first use (~15–30 seconds for initial download, then instant on subsequent runs).
 
@@ -203,7 +203,7 @@ Models are lazy-loaded and cached on first use (~15–30 seconds for initial dow
 Boost or reduce the audio level of any video. A single slider sets the **volume multiplier** (0 = silence, 1.0 = unchanged, up to 4×). Audio is re-encoded using the `volume` filter; the video stream is stream-copied (no quality loss, no re-encode overhead).
 
 ### ⟲ Loop / Repeat
-Play the video N times back-to-back in a single output file. Set **Total plays** (2–50); ffmpeg uses `-stream_loop` with stream copy so there is no re-encoding and the output file is proportionally larger. Trim is not applied for this operation. **Supported in batch mode** — each video loops independently with minimal memory overhead, making it safe and efficient for batch processing repeated content.
+Play the video N times back-to-back in a single output file. Set **Total plays** (2–50); ffmpeg uses `-stream_loop` with stream copy so there is no re-encoding and the output file is proportionally larger. Trim is not applied for this operation. **Supported in batch mode** - each video loops independently with minimal memory overhead, making it safe and efficient for batch processing repeated content.
 
 ### ▭ Logo / Image Overlay
 Stamp a logo, watermark, or any image (PNG with transparency works best) onto every frame. Controls:
@@ -331,8 +331,8 @@ Video is re-encoded to H.264; audio is stream-copied.
 
 This project is maintained with community feedback. Key features and improvements from user requests and contributions:
 
-- **Operation Chaining (Stack Mode)** — [#2](https://github.com/tejaswigowda/ffmpeg-webCLI/issues/2): Queue and compose multiple compatible operations into a single filter chain and execute in one pass, avoiding quality loss from repeated re-encoding.
-- **Batch + Chaining**: Stack mode and batch mode now work together — apply a full operation chain to every file in a batch, with per-file preview, individual downloads, and ZIP-all.
+- **Operation Chaining (Stack Mode)** - [#2](https://github.com/tejaswigowda/ffmpeg-webCLI/issues/2): Queue and compose multiple compatible operations into a single filter chain and execute in one pass, avoiding quality loss from repeated re-encoding.
+- **Batch + Chaining**: Stack mode and batch mode now work together - apply a full operation chain to every file in a batch, with per-file preview, individual downloads, and ZIP-all.
 - [PR #1](https://github.com/tejaswigowda/ffmpeg-webCLI/pull/1): Community contributions and improvements to the codebase.
 
 ---
