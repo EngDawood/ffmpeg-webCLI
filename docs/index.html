@@ -711,7 +711,7 @@
               <textarea id="autoCaptionTranscript" style="width:100%;min-height:120px;max-height:200px;font-size:0.78rem" placeholder="Transcript will appear here. You can edit it before embedding."></textarea>
               <div style="display:flex;gap:6px;margin-top:8px;justify-content:flex-end">
                 <button class="btn btn-ghost btn-sm" onclick="clearAutoCaptionTranscript()"><i class="fas fa-redo"></i> Reset</button>
-                <button class="btn btn-success btn-sm" onclick="confirmAutoCaptionTranscript()"><i class="fas fa-check"></i> Confirm & Embed</button>
+                <button class="btn btn-success btn-sm" id="confirmEmbedBtn" disabled onclick="confirmAutoCaptionTranscript()"><i class="fas fa-check"></i> Confirm & Embed</button>
               </div>
             </div>
             <p class="hint" style="margin-top:8px"><strong style="color:var(--text)">Process is 100% local:</strong> audio is extracted, transcribed on-device with Whisper via Transformers.js, and embedded as soft subtitles. Zero data leaves your browser.</p>
@@ -1186,19 +1186,6 @@ const BATCH_UNSUPPORTED = new Set(['crop', 'concat', 'sxs', 'pip', 'mixaudio', '
 let batchMode = false;
 const batchQueue = [];  // Array of {file, status: 'pending'|'processing'|'done'|'error', error?: string}
 let batchCurrent = null;  // Index of currently processing file
-
-// ── Expose to inline handlers ─────────────────────────
-Object.assign(window, {
-  loadFFmpeg, handleFile, handleFileInput, clearInput, setOp,
-  updateTrim, processVideo, runProcess, runBatch, download, clearLog, updateSizeEstimate, updateRawPreview,
-  resetCropSelection,
-  onRawInput2Change, onSubtitleFileChange,
-  onOverlayFileChange, onMixAudioFileChange, onConcatFileChange,
-  onSxsFileChange, onPipFileChange,
-  setMode, addToStack, removeStackItem, moveStackItem, updateStackPreview, runProcessStack,
-  toggleBatchMode, handleBatchFiles, clearBatchQueue, removeBatchFile, downloadBatchFile, downloadAllBatchFiles,
-  downloadBatchAllAsZip, selectBatchOutput
-});
 
 function onSubtitleFileChange(input) {
   if (!input.files.length) return;
@@ -2461,8 +2448,30 @@ async function runProcess() {
           updateAutoCaptionTranscript();
           pw.classList.add('hidden');
           
-          // Re-enable button for user to click "Confirm & Embed"
-          document.getElementById('processBtn').disabled = false;
+          // ── MEMORY OPTIMIZATION: Preemptively reload ffmpeg while user reviews transcript ──
+          // Start reloading ffmpeg in the background; disable Confirm & Embed until ready
+          const confirmBtn = document.getElementById('confirmEmbedBtn');
+          confirmBtn.disabled = true;
+          confirmBtn.textContent = '\u23f3 Loading ffmpeg\u2026';
+          
+          addLog('Preparing ffmpeg.wasm for subtitle embedding\u2026', 'ok');
+          (async () => {
+            try {
+              if (!isLoaded()) {
+                await loadFFmpeg();
+              }
+              // ffmpeg ready - enable the button
+              confirmBtn.disabled = false;
+              confirmBtn.innerHTML = '<i class="fas fa-check"></i> Confirm & Embed';
+              addLog('ffmpeg.wasm ready - you can now embed subtitles', 'ok');
+            } catch (e) {
+              console.error('Error preloading ffmpeg:', e);
+              addLog('Warning: Could not preload ffmpeg. It will attempt to load when you click Confirm & Embed.', 'warn');
+              // Still enable the button so user can try - confirmAutoCaptionTranscript will attempt to load
+              confirmBtn.disabled = false;
+              confirmBtn.innerHTML = '<i class="fas fa-check"></i> Confirm & Embed';
+            }
+          })();
           
           // Wait for user to confirm transcript or make edits
           // User will click "Confirm & Embed" button which calls confirmAutoCaptionTranscript()
@@ -4167,8 +4176,11 @@ function clearAutoCaptionTranscript() {
  * This is called after the user reviews and edits the transcript.
  */
 async function confirmAutoCaptionTranscript() {
+  const confirmBtn = document.getElementById('confirmEmbedBtn');
   try {
     // Disable button during embedding
+    confirmBtn.disabled = true;
+    confirmBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Embedding…';
     document.getElementById('processBtn').disabled = true;
     
     autoCaptionSRT = document.getElementById('autoCaptionTranscript').value;
@@ -4179,16 +4191,30 @@ async function confirmAutoCaptionTranscript() {
     // Save SRT content before cleanup
     const srtContent = autoCaptionSRT;
     
-    // ── MEMORY OPTIMIZATION: Reload ffmpeg.wasm before embedding ──
-    // Whisper transcription is complete; reload ffmpeg for subtitle embedding.
-    addLog('Reloading ffmpeg.wasm for subtitle embedding…', 'ok');
-    try {
-      if (!isLoaded()) {
+    // ── MEMORY OPTIMIZATION: Ensure ffmpeg.wasm is loaded before embedding ──
+    // Ffmpeg should be preloading while user reviews transcript, but double-check it's ready
+    addLog('Verifying ffmpeg.wasm is loaded and ready…', 'ok');
+    let retries = 0;
+    const maxRetries = 30; // 30 retries x 200ms = 6 seconds max wait
+    while (!isLoaded() && retries < maxRetries) {
+      await new Promise(r => setTimeout(r, 200));
+      retries++;
+    }
+    
+    // If preemptive load didn't complete, actively load now
+    if (!isLoaded()) {
+      addLog('Preemptive load incomplete - loading ffmpeg now…', 'ok');
+      try {
         await loadFFmpeg();
+      } catch (e) {
+        console.error('Error loading ffmpeg:', e);
+        throw new Error('Failed to load ffmpeg.wasm: ' + (e.message || String(e)));
       }
-    } catch (e) {
-      console.error('Error reloading ffmpeg.wasm:', e);
-      throw new Error('Failed to reload ffmpeg for subtitle embedding: ' + e.message);
+    }
+    
+    // Final check
+    if (!isLoaded()) {
+      throw new Error('FFmpeg failed to load. Please try again or reload the page.');
     }
     
     addLog('Writing SRT subtitle file…', 'ok');
@@ -4252,15 +4278,33 @@ async function confirmAutoCaptionTranscript() {
     document.getElementById('autoCaptionTranscriptPanel').classList.add('hidden');
     document.getElementById('progWrap').classList.add('hidden');
     
-    // Re-enable button
+    // Re-enable buttons
     document.getElementById('processBtn').disabled = false;
+    confirmBtn.disabled = false;
+    confirmBtn.innerHTML = '<i class="fas fa-check"></i> Confirm & Embed';
     
   } catch (err) {
     const errorMsg = err && err.message ? err.message : (err ? String(err) : 'Unknown error');
     addLog(`Error confirming transcript: ${errorMsg}`, 'err');
     document.getElementById('processBtn').disabled = false;
+    confirmBtn.disabled = false;
+    confirmBtn.innerHTML = '<i class="fas fa-check"></i> Confirm & Embed';
   }
 }
+
+// ── Expose all functions to window for inline event handlers ─────────────────────────
+Object.assign(window, {
+  loadFFmpeg, handleFile, handleFileInput, clearInput, setOp,
+  updateTrim, processVideo, runProcess, runBatch, download, clearLog, updateSizeEstimate, updateRawPreview,
+  resetCropSelection,
+  onRawInput2Change, onSubtitleFileChange,
+  onOverlayFileChange, onMixAudioFileChange, onConcatFileChange,
+  onSxsFileChange, onPipFileChange,
+  setMode, addToStack, removeStackItem, moveStackItem, updateStackPreview, runProcessStack,
+  toggleBatchMode, handleBatchFiles, clearBatchQueue, removeBatchFile, downloadBatchFile, downloadAllBatchFiles,
+  downloadBatchAllAsZip, selectBatchOutput,
+  confirmAutoCaptionTranscript, clearAutoCaptionTranscript, updateAutoCaptionTranscript
+});
 
 /**
  * Explicitly clean up transcriber and its model to free memory.
