@@ -194,9 +194,22 @@ export async function loadFFmpeg() {
       // Resolve which base to use (same-origin or the configured loopback URL).
       const found = await resolveServerBase();
       if (!found) {
-        const resp = await fetch(_api('/api/status'));
-        const reason = resp.ok ? ((await resp.json()).reason) : ('Server returned ' + resp.status);
-        throw new Error(reason || 'ffmpeg not found in server PATH');
+        const local = (state.engine.serverUrl || '').replace(/\/+$/, '');
+        const sameOrigin = !local || local === location.origin.replace(/\/+$/, '');
+        let reason;
+        if (sameOrigin) {
+          // Page is served by (or shares origin with) the server — report its
+          // own status reason (e.g. "ffmpeg not in PATH", or the CF Workers note).
+          try {
+            const resp = await fetch(_api('/api/status'));
+            reason = resp.ok ? (await resp.json()).reason : ('HTTP ' + resp.status);
+          } catch (e) { reason = e.message; }
+          reason = reason || 'ffmpeg not found in PATH';
+        } else {
+          // Deployed page reaching a local server that didn't answer.
+          reason = `Couldn't reach a native ffmpeg server at ${local}. Check that "node server.js" is running there on the right port, ffmpeg is in its PATH, ALLOWED_ORIGIN includes ${location.origin}, and you allowed local-network access for this site.`;
+        }
+        throw new Error(reason);
       }
       state.engine.serverModeReady = true;
       dot.className = 'dot loaded';
