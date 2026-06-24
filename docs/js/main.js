@@ -25,7 +25,7 @@ import { syncProcessBtn } from './ui.js';
 
 // engine.js
 import {
-  loadFFmpeg, setEngine, setWhisperSource, saveWhisperApiKey,
+  loadFFmpeg, setEngine, setWhisperSource, saveWhisperConfig, initWhisperConfigFields,
 } from './engine.js';
 
 // files.js
@@ -36,7 +36,7 @@ import {
 } from './files.js';
 
 // operations.js
-import { setOp, updateSizeEstimate } from './operations.js';
+import { setOp } from './operations.js';
 // `updateSizeEstimate` actually lives in ui.js; re-exported through
 // operations.js's import surface — pull directly from ui.js instead.
 import { updateSizeEstimate as _updateSizeEstimate } from './ui.js';
@@ -63,6 +63,9 @@ import {
 // crop.js (resetCropSelection is called from HTML)
 import { resetCropSelection } from './crop.js';
 
+// fonts.js (custom caption font picker — used by both subtitles and autocaption panels)
+import { onCaptionFontChange, clearCaptionFont } from './fonts.js';
+
 // raw.js (updateRawPreview is called from HTML oninput)
 import { updateRawPreview } from './raw.js';
 
@@ -83,7 +86,7 @@ import { runBatch } from './batch.js';
 // (Required for inline onclick handlers since this is a <script type="module">)
 Object.assign(window, {
   // engine
-  loadFFmpeg, setEngine, setWhisperSource, saveWhisperApiKey,
+  loadFFmpeg, setEngine, setWhisperSource, saveWhisperConfig,
   // files
   handleFile, handleFileInput, clearInput,
   onSubtitleFileChange, onOverlayFileChange, onMixAudioFileChange,
@@ -107,8 +110,11 @@ Object.assign(window, {
   updateAutoCaptionTranscript, updateAutoCaptionInfo,
   // ui
   clearLog, updateTrim, syncProcessBtn,
+  // fonts
+  onCaptionFontChange, clearCaptionFont,
 });
 
 // ── First-paint initialisation ──────────────────────────────────────────
 updateTrim();
 initRawExamples();
+initWhisperConfigFields();   // populate OpenAI API token / base URL / model ID from localStorage

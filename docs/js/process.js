@@ -363,7 +363,7 @@ export async function runProcess() {
 
           if (state.whisper.source === 'api') {
             // ── OpenAI Whisper API mode ──
-            if (!state.whisper.apiKey) throw new Error('No OpenAI API key set. Add it in the Auto-Caption panel.');
+            if (!state.whisper.apiKey) throw new Error('No API token set. Add a token, base URL, and model ID in the Auto-Caption API config.');
             document.getElementById('progLabel').textContent = 'Sending to OpenAI Whisper API\u2026';
             const rawSrt = await transcribeViaAPI(audioBuffer, state.whisper.apiKey);
             segments = [];

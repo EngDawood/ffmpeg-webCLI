@@ -40,7 +40,11 @@ export const state = {
   // ── Whisper / Auto-Caption ─────────────────────────────────────────
   whisper: {
     source:  localStorage.getItem('whisperSource') || 'local',  // 'local' | 'api'
-    apiKey:  localStorage.getItem('whisperApiKey') || '',
+    apiKey:  localStorage.getItem('whisperApiKey')  || '',
+    // OpenAI-compatible endpoint config — supports OpenAI, Azure OpenAI,
+    // Groq, local LLM servers (e.g. llama.cpp / vLLM with /v1 prefix), etc.
+    baseUrl: localStorage.getItem('whisperBaseUrl') || 'https://api.openai.com/v1',
+    modelId: localStorage.getItem('whisperModelId') || 'whisper-1',
     transcriber: null,   // Transcriber instance (reused across runs)
     segments:    null,   // segments from last transcription (pre-edit)
     srt:         null,   // editable SRT text
@@ -88,6 +92,19 @@ export const state = {
 
   // ── Screen wake lock (prevents sleep during long jobs) ────────────
   wakeLock: null,
+
+  // ── Custom caption font (used by hard-burn subtitle rendering) ─────
+  // When the user uploads a .ttf/.otf/.woff/.woff2 file we load it via
+  // the FontFace API and store the generated family name here. The
+  // canvas-based caption renderer in subtitles.js picks it up via
+  // getCaptionFontFamily(). Falls back to 'Arial, Helvetica, sans-serif'
+  // when null. Applies to HARD-BURN only — soft-embed subtitles are
+  // rendered by the player, not by us.
+  fonts: {
+    customFamily: null,   // e.g. 'fwc-custom-1719234567890'
+    customName:   null,   // original file name for display, e.g. 'myfont.ttf'
+    customFace:   null,   // the FontFace object (so we can unload it)
+  },
 };
 
 // ── Constants ──────────────────────────────────────────────────────────

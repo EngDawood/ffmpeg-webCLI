@@ -303,4 +303,5 @@ select:disabled { opacity: 0.6; cursor: not-allowed; background: var(--surface2)
 
 /* ── Engine mode toggle (Browser WASM vs Server native) ── */
 .engine-toggle-wrap { display:inline-flex; align-items:center; gap:6px; margin-left:8px; }
-#whisperApiKeyRow input[type="password"] { font-family: 'SF Mono','Fira Code','Courier New',monospace; letter-spacing:.04em; }
+#whisperApiConfigRow input[type="password"],
+#whisperApiConfigRow input[type="text"] { font-family: 'SF Mono','Fira Code','Courier New',monospace; letter-spacing:.04em; }

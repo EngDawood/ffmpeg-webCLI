@@ -23,7 +23,7 @@ import { addLog, updateInfoPanel, updateSizeEstimate } from './ui.js';
 import { renderCropFrame } from './crop.js';
 import { updateRawPreview } from './raw.js';
 import { buildAtempo } from './helpers.js';
-import { refreshStackControls, updateBatchTileStates } from './stack.js';
+import { refreshStackControls } from './stack.js';
 
 export function setOp(op) {
   if (state.stack.mode && !CHAINABLE_has(op)) {

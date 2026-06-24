@@ -10,6 +10,7 @@
 import { getVideoSize } from './helpers.js';
 import { getFF } from './engine.js';
 import { addLog } from './ui.js';
+import { getCaptionFontFamily, hasCustomFont } from './fonts.js';
 
 /**
  * Parse a "HH:MM:SS,mmm" / "MM:SS.mmm" timecode to seconds. Returns null
@@ -101,8 +102,16 @@ export async function buildCaptionBurnArgs(cues, inName, fontSizeChoice) {
   const marginV = Math.round(canvasH * 0.045);
 
   const measureCtx = document.createElement('canvas').getContext('2d');
-  const FONT = `bold ${fontSize}px Arial, Helvetica, sans-serif`;
+  // Use the user's custom font if loaded (via fonts.js), else Arial bold.
+  // Custom fonts render at their natural weight (no synthetic bold);
+  // the default Arial path keeps `bold` for readability on video.
+  const fontFamily = getCaptionFontFamily();
+  const weight     = hasCustomFont() ? 'normal' : 'bold';
+  const FONT = `${weight} ${fontSize}px ${fontFamily}`;
   measureCtx.font = FONT;
+  if (state.fonts.customName) {
+    addLog(`Using custom caption font: ${state.fonts.customName}`, 'ok');
+  }
 
   const wrapText = (text) => {
     const out = [];

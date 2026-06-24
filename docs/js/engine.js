@@ -1,0 +1,352 @@
+// js/engine.js
+//
+// Owns the two ffmpeg backends — the in-browser @ffmpeg/ffmpeg WASM
+// instance and the server-side adapter that proxies to native ffmpeg via
+// server.js — plus engine-mode toggling, Whisper source toggling, and the
+// OpenAI Whisper API helper.
+//
+// `getFF()` returns whichever backend is active; every consumer (process,
+// stack, batch, autocaption) calls it instead of touching `state.engine`
+// directly so the engine switch is a single point of change.
+
+import { FFmpeg } from 'https://cdn.jsdelivr.net/npm/@ffmpeg/ffmpeg@0.12.15/dist/esm/index.js';
+import { fetchFile } from 'https://cdn.jsdelivr.net/npm/@ffmpeg/util@0.12.2/dist/esm/index.js';
+
+import { state } from './state.js';
+import { addLog, syncProcessBtn } from './ui.js';
+
+// Re-export so other modules import `fetchFile` from engine.js instead of
+// each pulling the CDN URL themselves.
+export { fetchFile };
+
+// ── Instantiate backends ────────────────────────────────────────────────
+state.engine.ffmpeg = new FFmpeg();
+
+/**
+ * Drop-in replacement for the @ffmpeg/ffmpeg FFmpeg instance that routes
+ * all work through the local server.js API instead of the WASM runtime.
+ * Mirrors the surface area used by the app: on(), writeFile(), readFile(),
+ * deleteFile(), exec(), terminate().
+ */
+state.engine.serverFF = (() => {
+  const _files = new Map();   // name → Uint8Array (queued for next exec)
+  let _output     = null;     // Uint8Array from last exec
+  let _outputName = null;     // last arg of last exec (the output filename)
+  const _logHandlers      = [];
+  const _progressHandlers = [];
+
+  function _session() {
+    return 's' + Date.now().toString(36) + Math.random().toString(36).slice(2, 5);
+  }
+
+  return {
+    on(event, fn) {
+      if (event === 'log')      _logHandlers.push(fn);
+      if (event === 'progress') _progressHandlers.push(fn);
+    },
+
+    async writeFile(name, data) {
+      _files.set(name, data instanceof Uint8Array ? data : new Uint8Array(data.buffer ?? data));
+    },
+
+    async readFile(name) {
+      if (_outputName && name === _outputName) return _output ?? new Uint8Array(0);
+      if (_files.has(name)) return _files.get(name);
+      return new Uint8Array(0);
+    },
+
+    async deleteFile(name) {
+      _files.delete(name);
+      if (name === _outputName) { _output = null; _outputName = null; }
+    },
+
+    async exec(args) {
+      const session = _session();
+      // Upload every queued file
+      for (const [name, bytes] of _files) {
+        const r = await fetch(
+          `/api/upload?session=${encodeURIComponent(session)}&name=${encodeURIComponent(name)}`,
+          { method: 'POST', headers: { 'Content-Type': 'application/octet-stream' }, body: bytes }
+        );
+        if (!r.ok) throw new Error(`Upload failed for "${name}": ${await r.text()}`);
+      }
+      _progressHandlers.forEach(fn => fn({ progress: 0.05 }));
+      _logHandlers.forEach(fn => fn({ message: `[server] ffmpeg ${args.join(' ')}` }));
+
+      const r = await fetch('/api/exec', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ session, args }),
+      });
+
+      if (!r.ok) {
+        let msg = `Server ffmpeg failed (${r.status})`;
+        try {
+          const j = await r.json();
+          msg = j.error || msg;
+          if (j.stderr) _logHandlers.forEach(fn => fn({ message: j.stderr }));
+        } catch (_) {}
+        throw new Error(msg);
+      }
+
+      _output     = new Uint8Array(await r.arrayBuffer());
+      _outputName = args[args.length - 1];
+      _progressHandlers.forEach(fn => fn({ progress: 1 }));
+      return 0;
+    },
+
+    async terminate() {
+      _files.clear(); _output = null; _outputName = null;
+    },
+  };
+})();
+
+/** Returns the active ffmpeg instance (WASM or server adapter). */
+export function getFF() {
+  return state.engine.useServerMode ? state.engine.serverFF : state.engine.ffmpeg;
+}
+
+/** Whether the active backend is loaded and ready for exec(). */
+export function isLoaded() {
+  if (state.engine.useServerMode) return state.engine.serverModeReady;
+  return document.getElementById('statusDot').classList.contains('loaded');
+}
+
+// ── Load / check ffmpeg ────────────────────────────────────────────────
+export async function loadFFmpeg() {
+  const btn = document.getElementById('loadBtn');
+  const dot = document.getElementById('statusDot');
+  const txt = document.getElementById('statusText');
+  const ff  = state.engine.ffmpeg;
+
+  if (state.engine.useServerMode) {
+    dot.className = 'dot loading';
+    txt.textContent = 'Checking server ffmpeg…';
+    btn.disabled = true;
+    try {
+      const resp = await fetch('/api/status');
+      if (!resp.ok) throw new Error('Server returned ' + resp.status);
+      const { available, reason } = await resp.json();
+      if (!available) throw new Error(reason || 'ffmpeg not found in server PATH');
+      state.engine.serverModeReady = true;
+      dot.className = 'dot loaded';
+      txt.textContent = 'Server ffmpeg ready (native — no WASM download)';
+      btn.innerHTML  = '<i class="fas fa-check"></i> Ready';
+      btn.className  = 'btn btn-success ml-auto';
+      btn.disabled   = true;
+      addLog('Server-mode ffmpeg ready. All processing runs natively via localhost.', 'ok');
+      syncProcessBtn();
+    } catch (err) {
+      state.engine.serverModeReady = false;
+      dot.className   = 'dot';
+      txt.textContent = 'Server check failed: ' + (err.message || err);
+      btn.innerHTML   = '<i class="fas fa-server"></i> Check Server';
+      btn.className   = 'btn btn-primary ml-auto';
+      btn.disabled    = false;
+      addLog('Server check error: ' + (err.message || err), 'err');
+    }
+    return;
+  }
+
+  // Browser WASM mode
+  dot.className = 'dot loading';
+  txt.textContent = 'Downloading ffmpeg-core (~31 MB)…';
+  btn.disabled = true;
+
+  ff.on('log', ({ message }) => addLog(message));
+  ff.on('progress', ({ progress }) => {
+    const pct = Math.min(100, Math.round(progress * 100));
+    document.getElementById('progFill').style.width = pct + '%';
+    document.getElementById('progPct').textContent = pct + '%';
+  });
+
+  const esmBase  = 'https://cdn.jsdelivr.net/npm/@ffmpeg/ffmpeg@0.12.15/dist/esm/';
+  // dist/esm is required: the worker loads the core via dynamic import()
+  // which needs a real ES module (export default). The dist/umd build has
+  // no exports, so import() returns an empty namespace and module.default
+  // is undefined.
+  const coreBase = 'https://cdn.jsdelivr.net/npm/@ffmpeg/core@0.12.10/dist/esm';
+  try {
+    // docs/worker.js is a same-origin proxy that imports the CDN worker
+    // module. Browsers block cross-origin type:module workers even with
+    // CORS headers, and blob-URL workers cause
+    // ERR_REQUEST_RANGE_NOT_SATISFIABLE on internal fetches. A same-origin
+    // file avoids both issues: no blob URL, no CORS restriction.
+    // import.meta.url inside the CDN module resolves to CDN, so all its
+    // relative imports resolve correctly.
+    const classWorkerURL = new URL('./worker.js', location.href).href;
+    addLog('Using same-origin worker proxy (./worker.js).', 'ok');
+
+    // coreURL must be a direct CDN URL (NOT a blob URL). The ESM
+    // ffmpeg-core.js has internal relative imports; when loaded from a
+    // blob URL those imports have no base to resolve against → memory
+    // errors. Passing the CDN URL directly lets import() resolve them
+    // from the CDN base.
+    const coreURL = `${coreBase}/ffmpeg-core.js`;
+    addLog('Using direct CDN URL for ffmpeg-core.js.', 'ok');
+
+    // wasmURL: direct CDN URL. jsDelivr serves .wasm with
+    // Content-Type: application/wasm + CORS headers, so
+    // WebAssembly.instantiateStreaming works without a blob wrapper.
+    // Blob URLs don't support Range requests (needed internally by the
+    // streaming compiler → ERR_REQUEST_RANGE_NOT_SATISFIABLE).
+    const wasmURL = `${coreBase}/ffmpeg-core.wasm`;
+    addLog('Using direct CDN URL for ffmpeg-core.wasm.', 'ok');
+
+    txt.textContent = 'Initialising ffmpeg (downloading WASM ~31 MB)…';
+    await ff.load({ classWorkerURL, coreURL, wasmURL });
+
+    dot.className = 'dot loaded';
+    txt.textContent = 'ffmpeg loaded and ready';
+    btn.innerHTML = '<i class="fas fa-check"></i> Loaded';
+    btn.className = 'btn btn-success ml-auto';
+    btn.disabled = true;
+    addLog('ffmpeg loaded.', 'ok');
+    syncProcessBtn();
+  } catch (err) {
+    // ffmpeg.wasm rejects with a plain string, not an Error — guard
+    const msg = (err instanceof Error ? err.message : String(err)) || 'unknown error';
+    dot.className = 'dot';
+    txt.textContent = 'Load failed: ' + msg;
+    btn.disabled = false;
+    addLog('Load error: ' + msg, 'err');
+  }
+}
+
+// ── Engine toggle (Browser WASM vs Server native) ──────────────────────
+export function setEngine(mode) {
+  const newServer = mode === 'server';
+  if (newServer === state.engine.useServerMode) return;
+  state.engine.useServerMode = newServer;
+  localStorage.setItem('ffEngine', state.engine.useServerMode ? 'server' : 'browser');
+
+  document.getElementById('btnEngineBrowser').classList.toggle('active', !state.engine.useServerMode);
+  document.getElementById('btnEngineServer').classList.toggle('active',  state.engine.useServerMode);
+
+  const dot = document.getElementById('statusDot');
+  const txt = document.getElementById('statusText');
+  const btn = document.getElementById('loadBtn');
+
+  if (state.engine.useServerMode) {
+    state.engine.serverModeReady = false;
+    dot.className   = 'dot';
+    txt.textContent = 'Server mode — click to verify native ffmpeg';
+    btn.innerHTML   = '<i class="fas fa-server"></i> Check Server';
+    btn.className   = 'btn btn-primary ml-auto';
+    btn.disabled    = false;
+    addLog('Switched to server mode. Calls native ffmpeg on localhost — no WASM download.', 'ok');
+  } else {
+    state.engine.serverModeReady = false;
+    if (!document.getElementById('statusDot').classList.contains('loaded')) {
+      txt.textContent = 'ffmpeg not loaded — click "Load ffmpeg" to begin';
+      btn.innerHTML   = '<i class="fas fa-play"></i> Load ffmpeg (~31 MB)';
+      btn.className   = 'btn btn-primary ml-auto';
+      btn.disabled    = false;
+    }
+    addLog('Switched to browser mode (ffmpeg.wasm).', 'ok');
+  }
+  syncProcessBtn();
+}
+
+// ── Whisper source toggle (local Transformers.js vs OpenAI API) ────────
+export function setWhisperSource(source) {
+  state.whisper.source = source;
+  localStorage.setItem('whisperSource', source);
+  document.getElementById('btnWhisperLocal').classList.toggle('active', source === 'local');
+  document.getElementById('btnWhisperAPI').classList.toggle('active',   source === 'api');
+  document.getElementById('whisperApiConfigRow').classList.toggle('hidden', source !== 'api');
+  document.getElementById('whisperModelRow').classList.toggle('hidden',  source === 'api');
+  const hint = document.getElementById('autoCaptionModeHint');
+  if (hint) {
+    hint.innerHTML = source === 'api'
+      ? '<strong style="color:var(--text)">API mode:</strong> audio sent to the configured OpenAI-compatible endpoint via the local server proxy. Requires server.js running and an API token.'
+      : '<strong style="color:var(--text)">Local mode:</strong> audio extracted and transcribed on-device via Transformers.js. Zero data leaves your browser.';
+  }
+  updateAutoCaptionInfo();
+}
+
+/**
+ * Persist all three OpenAI-compatible endpoint fields (token, base URL,
+ * model ID) to localStorage. Called on every keystroke from the inline
+ * oninput handlers in the Auto-Caption API config row.
+ */
+export function saveWhisperConfig() {
+  state.whisper.apiKey  = document.getElementById('whisperApiKey').value;
+  state.whisper.baseUrl = (document.getElementById('whisperBaseUrl').value || '').trim() || 'https://api.openai.com/v1';
+  state.whisper.modelId = (document.getElementById('whisperModelId').value || '').trim() || 'whisper-1';
+  localStorage.setItem('whisperApiKey',  state.whisper.apiKey);
+  localStorage.setItem('whisperBaseUrl', state.whisper.baseUrl);
+  localStorage.setItem('whisperModelId', state.whisper.modelId);
+}
+
+/**
+ * Populate the API config input fields from saved state on page load.
+ * Called once from main.js init.
+ */
+export function initWhisperConfigFields() {
+  const k = document.getElementById('whisperApiKey');
+  const b = document.getElementById('whisperBaseUrl');
+  const m = document.getElementById('whisperModelId');
+  if (k) k.value = state.whisper.apiKey;
+  if (b) b.value = state.whisper.baseUrl;
+  if (m) m.value = state.whisper.modelId;
+}
+
+// `updateAutoCaptionInfo` lives in autocaption.js but setWhisperSource
+// calls it. Avoid a circular import by deferring the lookup to call time.
+function updateAutoCaptionInfo() {
+  const fn = window.updateAutoCaptionInfo;
+  if (typeof fn === 'function') fn();
+}
+
+// ── OpenAI-compatible API transcription (via local server proxy) ───────
+// Converts Float32Array audio (16 kHz mono) to WAV and sends it to the
+// local server proxy (/api/transcribe) which forwards to whatever
+// OpenAI-compatible endpoint the user configured (base URL + model ID).
+export async function transcribeViaAPI(audioSamples, apiKey) {
+  const wavBytes = float32ToWAV(audioSamples, 16000);
+  const baseUrl = state.whisper.baseUrl || 'https://api.openai.com/v1';
+  const modelId = state.whisper.modelId || 'whisper-1';
+  addLog(`Sending audio to ${baseUrl} (model: ${modelId}) via server proxy…`, 'ok');
+  const resp = await fetch('/api/transcribe', {
+    method:  'POST',
+    headers: {
+      'Content-Type':       'audio/wav',
+      'X-OpenAI-Key':       apiKey,
+      'X-OpenAI-Base-URL':  baseUrl,
+      'X-OpenAI-Model':     modelId,
+    },
+    body: wavBytes,
+  });
+  if (!resp.ok) {
+    const text = await resp.text();
+    let msg = `API error (${resp.status})`;
+    try { const j = JSON.parse(text); msg = j.error?.message || j.error || msg; } catch (_) {}
+    throw new Error(msg);
+  }
+  return await resp.text(); // SRT-formatted transcript
+}
+
+/** Encode a Float32Array of mono PCM samples as a 16-bit PCM WAV file. */
+export function float32ToWAV(samples, sampleRate) {
+  const buf  = new ArrayBuffer(44 + samples.length * 2);
+  const view = new DataView(buf);
+  const str  = (off, s) => { for (let i = 0; i < s.length; i++) view.setUint8(off + i, s.charCodeAt(i)); };
+  str(0,  'RIFF');
+  view.setUint32( 4, 36 + samples.length * 2, true);
+  str(8,  'WAVE'); str(12, 'fmt ');
+  view.setUint32(16, 16, true);
+  view.setUint16(20, 1,  true); // PCM
+  view.setUint16(22, 1,  true); // mono
+  view.setUint32(24, sampleRate, true);
+  view.setUint32(28, sampleRate * 2, true);
+  view.setUint16(32, 2,  true);
+  view.setUint16(34, 16, true);
+  str(36, 'data');
+  view.setUint32(40, samples.length * 2, true);
+  for (let i = 0; i < samples.length; i++) {
+    const s = Math.max(-1, Math.min(1, samples[i]));
+    view.setInt16(44 + i * 2, s < 0 ? s * 0x8000 : s * 0x7FFF, true);
+  }
+  return new Uint8Array(buf);
+}

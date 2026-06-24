@@ -13,9 +13,9 @@
  * fully offline after first visit.
  */
 
-const CACHE_NAME = 'ffmpeg-editor-v4';
-const RUNTIME_CACHE = 'ffmpeg-editor-runtime-v4';
-const CDN_CACHE = 'ffmpeg-editor-cdn-v4';
+const CACHE_NAME = 'ffmpeg-editor-v5';
+const RUNTIME_CACHE = 'ffmpeg-editor-runtime-v5';
+const CDN_CACHE = 'ffmpeg-editor-cdn-v5';
 
 const STATIC_ASSETS = [
   '/',
@@ -28,6 +28,7 @@ const STATIC_ASSETS = [
   '/js/ui.js',
   '/js/trim.js',
   '/js/files.js',
+  '/js/fonts.js',
   '/js/crop.js',
   '/js/raw.js',
   '/js/operations.js',
