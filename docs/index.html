@@ -10,11 +10,14 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="ffmpeg webCLI">
   <title>ffmpeg webCLI</title>
+  <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
+  <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+  <link rel="preload" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/webfonts/fa-solid-900.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="manifest" href="manifest.json">
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'><rect fill='%233b82f6' width='192' height='192' rx='45'/><path d='M60 80l48-28v96L60 120z' fill='%230d0f1a'/></svg>">
   <link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'><rect fill='%233b82f6' width='192' height='192' rx='45'/><path d='M60 80l48-28v96L60 120z' fill='%230d0f1a'/></svg>">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css">
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js" defer></script>
   <link rel="stylesheet" href="./styles.css">
   <script src="./js/theme.js"></script>
 </head>
@@ -31,7 +34,7 @@
     <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
     100% local. Data never leaves your browser.
   </span>
-  <a class="gh-link" href="https://github.com/tejaswigowda/ffmpeg-webCLI" target="_blank" rel="noopener">
+  <a class="gh-link" href="https://github.com/tejaswigowda/ffmpeg-webCLI" target="_blank" rel="noopener" aria-label="View source on GitHub">
     <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.477 2 2 6.477 2 12c0 4.418 2.865 8.166 6.839 9.489.5.092.682-.217.682-.482 0-.237-.009-.868-.013-1.703-2.782.604-3.369-1.341-3.369-1.341-.454-1.155-1.11-1.463-1.11-1.463-.908-.62.069-.608.069-.608 1.003.07 1.531 1.03 1.531 1.03.892 1.529 2.341 1.087 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.11-4.555-4.943 0-1.091.39-1.984 1.029-2.683-.103-.253-.446-1.27.098-2.647 0 0 .84-.269 2.75 1.025A9.564 9.564 0 0112 6.844a9.59 9.59 0 012.504.337c1.909-1.294 2.747-1.025 2.747-1.025.546 1.377.203 2.394.1 2.647.64.699 1.028 1.592 1.028 2.683 0 3.842-2.339 4.687-4.566 4.935.359.309.678.919.678 1.852 0 1.336-.012 2.415-.012 2.743 0 .267.18.578.688.48C19.138 20.163 22 16.418 22 12c0-5.523-4.477-10-10-10z"/></svg>
     <span>Fork on GitHub</span>
   </a>
@@ -39,7 +42,7 @@
 
 
   </header>
-<div class="container">
+<main class="container">
 
   <!-- Status -->
   <div class="statusbar">
@@ -59,7 +62,7 @@
     <!-- ── Left: Input + Trim ── -->
     <div>
       <div class="card">
-        <div class="card-header">Input Video<button class="batch-toggle" id="batchToggle" onclick="toggleBatchMode()" title="Process multiple files"><i class="fas fa-layer-group"></i> Batch</button></div>
+        <h2 class="card-header">Input Video<button class="batch-toggle" id="batchToggle" onclick="toggleBatchMode()" title="Process multiple files"><i class="fas fa-layer-group"></i> Batch</button></h2>
         <div class="card-body">
           <div class="drop-zone" id="dropZone" onclick="document.getElementById('fileInput').click()">
             <i class="fas fa-file-video" style="font-size:3rem;margin-bottom:10px;opacity:0.7"></i>
@@ -86,20 +89,20 @@
 
       <!-- Trim -->
       <div class="card" id="trimCard">
-        <div class="card-header">
+        <h2 class="card-header">
           Trim <span class="tag">applied to all operations</span>
           <span class="tag" id="batchTrimWarning" style="background:#d97706;display:none;margin-left:8px;">Disabled (batch mode)</span>
-        </div>
+        </h2>
         <div class="card-body">
           <p class="hint" style="margin-bottom:8px">Drag the handles to set start and end. Leave untouched to keep the full video.</p>
           <div class="trim-row">
             <div class="trim-col">
-              <label>Start</label>
+              <label for="trimStart">Start</label>
               <input type="range" id="trimStart" min="0" max="100" step="0.1" value="0" oninput="updateTrim()">
               <div class="time-val" id="startVal">0:00.0</div>
             </div>
             <div class="trim-col">
-              <label>End</label>
+              <label for="trimEnd">End</label>
               <input type="range" id="trimEnd" min="0" max="100" step="0.1" value="100" oninput="updateTrim()">
               <div class="time-val" id="endVal">0:00.0</div>
             </div>
@@ -117,11 +120,11 @@
     <!-- ── Right: Operations + Output ── -->
     <div>
       <div class="card">
-        <div class="card-header">Operations</div>
+        <h2 class="card-header">Operations</h2>
         <div class="card-body">
 
           <!-- Mode toggle: single op vs. operation stack -->
-          <div class="mode-toggle" role="tablist" aria-label="Processing mode">
+          <div class="mode-toggle">
             <button class="mode-btn active" id="modeSingle" onclick="setMode('single')"><i class="fas fa-square"></i> Single</button>
             <button class="mode-btn" id="modeStack" onclick="setMode('stack')"><i class="fas fa-layer-group"></i> Stack (chain)</button>
           </div>
@@ -162,7 +165,7 @@
 
           <!-- Convert -->
           <div class="op-panel" id="panel-convert">
-            <h4>Convert to format</h4>
+            <h3>Convert to format</h3>
             <div class="form-row">
               <div class="form-group" style="color:var(--muted);font-size:.9rem">
                 <p>Use the Output Format selector below to choose format.</p>
@@ -172,7 +175,7 @@
 
           <!-- Resize & Compress -->
           <div class="op-panel hidden" id="panel-resizecompress">
-            <h4>Resize &amp; Compress</h4>
+            <h3>Resize &amp; Compress</h3>
             <div class="form-row">
               <div class="form-group">
                 <label class="lbl">Width (px)</label>
@@ -214,7 +217,7 @@
 
           <!-- Audio -->
           <div class="op-panel hidden" id="panel-audio">
-            <h4>Extract audio track</h4>
+            <h3>Extract audio track</h3>
             <div class="form-row">
               <div class="form-group">
                 <label class="lbl">Audio Format</label>
@@ -231,13 +234,13 @@
 
           <!-- Mute -->
           <div class="op-panel hidden" id="panel-mute">
-            <h4>Remove audio track</h4>
+            <h3>Remove audio track</h3>
             <p class="hint" style="font-size:.82rem;color:var(--text)">Output will be the same video with the audio stream stripped.</p>
           </div>
 
           <!-- GIF -->
           <div class="op-panel hidden" id="panel-gif">
-            <h4>Animated GIF</h4>
+            <h3>Animated GIF</h3>
             <div class="form-row">
               <div class="form-group">
                 <label class="lbl">FPS</label>
@@ -253,7 +256,7 @@
 
           <!-- Speed -->
           <div class="op-panel hidden" id="panel-speed">
-            <h4>Playback speed</h4>
+            <h3>Playback speed</h3>
             <div class="form-row">
               <div class="form-group">
                 <label class="lbl">Multiplier</label>
@@ -271,7 +274,7 @@
 
           <!-- Rotate / Flip -->
           <div class="op-panel hidden" id="panel-rotate">
-            <h4>Rotate / Flip</h4>
+            <h3>Rotate / Flip</h3>
             <div class="form-row">
               <div class="form-group">
                 <label class="lbl">Transform</label>
@@ -289,7 +292,7 @@
 
           <!-- Crop -->
           <div class="op-panel hidden" id="panel-crop">
-            <h4>Crop</h4>
+            <h3>Crop</h3>
             <div class="crop-toolbar">
               <div class="crop-summary" id="cropSummary">Load a video to crop.</div>
               <button class="btn btn-ghost btn-sm" type="button" onclick="resetCropSelection()"><i class="fas fa-rotate-left"></i> Reset</button>
@@ -319,7 +322,7 @@
 
           <!-- Thumbnail -->
           <div class="op-panel hidden" id="panel-thumbnail">
-            <h4>Extract Thumbnail</h4>
+            <h3>Extract Thumbnail</h3>
             <div class="form-row">
               <div class="form-group">
                 <label class="lbl">Timestamp (seconds)</label>
@@ -338,13 +341,13 @@
 
           <!-- Reverse -->
           <div class="op-panel hidden" id="panel-reverse">
-            <h4>Reverse</h4>
+            <h3>Reverse</h3>
             <p class="hint" style="font-size:.82rem;color:var(--text)">Plays video and audio backwards. The whole clip is buffered in memory - keep clips under ~2 minutes for best results.</p>
           </div>
 
           <!-- Fade -->
           <div class="op-panel hidden" id="panel-fade">
-            <h4>Fade In / Out</h4>
+            <h3>Fade In / Out</h3>
             <div class="form-row">
               <div class="form-group">
                 <label class="lbl">Fade in (sec)</label>
@@ -360,7 +363,7 @@
 
           <!-- Adjust -->
           <div class="op-panel hidden" id="panel-adjust">
-            <h4>Adjust</h4>
+            <h3>Adjust</h3>
             <div class="form-row">
               <div class="form-group">
                 <label class="lbl">Brightness</label>
@@ -388,13 +391,13 @@
 
           <!-- Strip Metadata -->
           <div class="op-panel hidden" id="panel-stripmeta">
-            <h4>Strip Metadata</h4>
+            <h3>Strip Metadata</h3>
             <p class="hint" style="font-size:.82rem;color:var(--text)">Removes all embedded metadata (GPS, camera info, creation date, etc.) from the output file. Video and audio are re-encoded.</p>
           </div>
 
           <!-- Embed Subtitles -->
           <div class="op-panel hidden" id="panel-subtitles">
-            <h4>Embed Subtitles</h4>
+            <h3>Embed Subtitles</h3>
             <div style="margin-bottom:10px">
               <label class="lbl">Subtitle file <span style="font-weight:400;color:var(--muted)">(SRT, VTT, or ASS)</span></label>
               <div style="display:flex;align-items:center;gap:8px">
@@ -447,7 +450,7 @@
 
           <!-- Auto-Caption (Whisper-powered speech-to-text) -->
           <div class="op-panel hidden" id="panel-autocaption">
-            <h4>Auto-Caption (Whisper)</h4>
+            <h3>Auto-Caption (Whisper)</h3>
             <!-- Transcription source: local Whisper.js or OpenAI API -->
             <div class="form-row" style="margin-bottom:10px">
               <div class="form-group">
@@ -535,7 +538,7 @@
 
           <!-- Volume -->
           <div class="op-panel hidden" id="panel-volume">
-            <h4>Volume</h4>
+            <h3>Volume</h3>
             <div class="form-row">
               <div class="form-group">
                 <label class="lbl">Multiplier - <span id="volVal">1.00</span>×</label>
@@ -548,7 +551,7 @@
 
           <!-- Loop -->
           <div class="op-panel hidden" id="panel-loop">
-            <h4>Loop / Repeat</h4>
+            <h3>Loop / Repeat</h3>
             <div class="form-row">
               <div class="form-group">
                 <label class="lbl">Total plays</label>
@@ -560,7 +563,7 @@
 
           <!-- Logo Overlay -->
           <div class="op-panel hidden" id="panel-overlay">
-            <h4>Logo / Image Overlay</h4>
+            <h3>Logo / Image Overlay</h3>
             <div style="margin-bottom:10px">
               <label class="lbl">Image file <span style="font-weight:400;color:var(--muted)">(PNG with transparency recommended)</span></label>
               <div style="display:flex;align-items:center;gap:8px">
@@ -590,7 +593,7 @@
 
           <!-- Mix Audio -->
           <div class="op-panel hidden" id="panel-mixaudio">
-            <h4>Mix Audio (Background Music)</h4>
+            <h3>Mix Audio (Background Music)</h3>
             <div style="margin-bottom:10px">
               <label class="lbl">Music / audio file</label>
               <div style="display:flex;align-items:center;gap:8px">
@@ -616,7 +619,7 @@
 
           <!-- Concatenate -->
           <div class="op-panel hidden" id="panel-concat">
-            <h4>Concatenate (Join Clips)</h4>
+            <h3>Concatenate (Join Clips)</h3>
             <div style="margin-bottom:10px">
               <label class="lbl">Second clip <span style="font-weight:400;color:var(--muted)">(appended after the loaded file)</span></label>
               <div style="display:flex;align-items:center;gap:8px">
@@ -630,7 +633,7 @@
 
           <!-- Side by Side -->
           <div class="op-panel hidden" id="panel-sxs">
-            <h4>Side by Side</h4>
+            <h3>Side by Side</h3>
             <div style="margin-bottom:10px">
               <label class="lbl">Second video</label>
               <div style="display:flex;align-items:center;gap:8px">
@@ -667,7 +670,7 @@
 
           <!-- Picture in Picture -->
           <div class="op-panel hidden" id="panel-pip">
-            <h4>Picture in Picture</h4>
+            <h3>Picture in Picture</h3>
             <div style="margin-bottom:10px">
               <label class="lbl">Overlay video</label>
               <div style="display:flex;align-items:center;gap:8px">
@@ -697,7 +700,7 @@
 
           <!-- Media Info -->
           <div class="op-panel hidden" id="panel-info">
-            <h4>Media Info</h4>
+            <h3>Media Info</h3>
             <div id="infoBasic" style="font-size:0.82rem;color:var(--text);line-height:1.9;margin-bottom:10px">
               <span style="color:var(--muted)">Load a video file to see its properties.</span>
             </div>
@@ -706,7 +709,7 @@
 
           <!-- Raw / Advanced -->
           <div class="op-panel hidden" id="panel-raw">
-            <h4>Raw FFmpeg</h4>
+            <h3>Raw FFmpeg</h3>
 
             <!-- Example library -->
             <details class="raw-examples-details" id="rawExamplesPanel">
@@ -742,7 +745,7 @@
 
           <!-- Pad / Letterbox -->
           <div class="op-panel hidden" id="panel-pad">
-            <h4>Pad to Aspect Ratio</h4>
+            <h3>Pad to Aspect Ratio</h3>
             <div class="form-row">
               <div class="form-group">
                 <label class="lbl">Target Ratio</label>
@@ -769,7 +772,7 @@
 
           <!-- Normalize Audio -->
           <div class="op-panel hidden" id="panel-normalize">
-            <h4>Normalize Audio (EBU R128)</h4>
+            <h3>Normalize Audio (EBU R128)</h3>
             <div class="form-row">
               <div class="form-group">
                 <label class="lbl">Target Loudness</label>
@@ -785,7 +788,7 @@
 
           <!-- Denoise -->
           <div class="op-panel hidden" id="panel-denoise">
-            <h4>Denoise (hqdn3d)</h4>
+            <h3>Denoise (hqdn3d)</h3>
             <div class="form-row">
               <div class="form-group">
                 <label class="lbl">Strength</label>
@@ -801,13 +804,13 @@
 
           <!-- Boomerang -->
           <div class="op-panel hidden" id="panel-boomerang">
-            <h4>Boomerang</h4>
+            <h3>Boomerang</h3>
             <p class="hint" style="font-size:.82rem;color:var(--text)">Plays the clip forward then immediately in reverse — classic boomerang loop. Trim is respected. Audio is removed from the output.</p>
           </div>
 
           <!-- Sharpen / Blur -->
           <div class="op-panel hidden" id="panel-sharpenblur">
-            <h4>Sharpen / Blur</h4>
+            <h3>Sharpen / Blur</h3>
             <div class="form-row">
               <div class="form-group">
                 <label class="lbl">Effect</label>
@@ -831,7 +834,7 @@
           <!-- Operation stack (chaining) -->
           <div id="stackSection" class="hidden">
             <div class="op-panel">
-              <h4>Operation Stack</h4>
+              <h3>Operation Stack</h3>
               <div id="stackList"><div class="stack-empty">No operations yet — configure an op above and click &ldquo;Add to Stack&rdquo;.</div></div>
               <div class="form-row" style="margin-top:10px">
                 <div class="form-group">
@@ -855,7 +858,7 @@
           <!-- Global output format (single mode) -->
           <div id="singleOutFmtWrap" class="form-row" style="margin-top:12px">
             <div class="form-group">
-              <label class="lbl">Output Format</label>
+              <label class="lbl" for="singleOutFmt">Output Format</label>
               <select id="singleOutFmt" onchange="updateSizeEstimate()">
                 <option value="mp4">MP4 (H.264 + AAC)</option>
                 <option value="mkv">MKV (H.264 + AAC)</option>
@@ -901,7 +904,7 @@
 
       <!-- Output -->
       <div class="card">
-        <div class="card-header">Output</div>
+        <h2 class="card-header">Output</h2>
         <div class="card-body">
           <div class="out-empty" id="outEmpty">Process a video to see the result here</div>
           <div id="outContent" class="hidden">
@@ -933,14 +936,14 @@
 
   <!-- Log -->
   <div class="card" style="margin-top:16px; margin-bottom: 50px;">
-    <div class="card-header">
+    <h2 class="card-header">
       FFmpeg Log
       <button class="btn btn-ghost btn-sm" onclick="clearLog()"><i class="fas fa-broom"></i> Clear</button>
-    </div>
+    </h2>
     <div class="log" id="log"><div class="log-line ok">Ready. Load ffmpeg to begin.</div></div>
   </div>
 
-</div><!-- /container -->
+</main><!-- /container -->
 
 <script type="module" src="./js/main.js"></script>
 </body>

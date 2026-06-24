@@ -148,7 +148,14 @@ function handleAPI(urlPath, q, req, res) {
           const full = path.join(sess.dir, f).replace(/\\/g, '/');
           const esc  = f.replace(/[.+*?^${}()|[\]\\]/g, '\\$&');
           // Replace bare filename only (not one already preceded by / or \)
-          r = r.replace(new RegExp('(?<![/\\\\])' + esc, 'g'), full);
+          r = r.replace(new RegExp('(?<![/\\\\])' + esc, 'g'), (_match, _offset, string) => {
+            // When embedded inside a filtergraph option (arg contains '='), escape
+            // Windows drive-letter colons so ffmpeg doesn't treat them as option
+            // separators (e.g. "subtitles=C:/path" → "subtitles=C\:/path").
+            return string.includes('=')
+              ? full.replace(/^([A-Za-z]):/, '$1\\:')
+              : full;
+          });
         }
         return r;
       };
@@ -191,11 +198,38 @@ function handleAPI(urlPath, q, req, res) {
   }
 
   // ── POST /api/transcribe ─────────────────────────────────────────────────
-  // Proxies a WAV audio body to the OpenAI Whisper API and returns SRT text.
-  // Header X-OpenAI-Key must carry the API key (never logged).
+  // Proxies a WAV audio body to an OpenAI-compatible Whisper API and returns SRT text.
+  // Respects custom base URL and model ID headers passed by the frontend.
+  // Requests verbose_json from the target API and parses it to SRT to support APIs
+  // like Groq which do not support the raw 'srt' response_format natively.
   if (urlPath === '/api/transcribe' && req.method === 'POST') {
     const apiKey = req.headers['x-openai-key'];
     if (!apiKey) { res.writeHead(400); res.end('Missing X-OpenAI-Key header'); return; }
+
+    const customUrlStr = req.headers['x-openai-base-url'];
+    const customModel = req.headers['x-openai-model'] || 'whisper-1';
+
+    let hostname = 'api.openai.com';
+    let pathStr = '/v1/audio/transcriptions';
+    let protocol = 'https:';
+    let port = '';
+
+    if (customUrlStr) {
+      try {
+        const parsed = new URL(customUrlStr);
+        hostname = parsed.hostname;
+        protocol = parsed.protocol;
+        port = parsed.port;
+        pathStr = parsed.pathname;
+        if (pathStr === '/' || pathStr === '') {
+          pathStr = '/v1/audio/transcriptions';
+        } else if (!pathStr.endsWith('/audio/transcriptions') && !pathStr.endsWith('/transcriptions')) {
+          pathStr = pathStr.replace(/\/$/, '') + '/audio/transcriptions';
+        }
+      } catch (e) {
+        // Fallback to default
+      }
+    }
 
     const chunks = [];
     req.on('data', c => chunks.push(c));
@@ -204,16 +238,16 @@ function handleAPI(urlPath, q, req, res) {
       const boundary  = 'ffwcbnd' + Date.now();
 
       const head = Buffer.from(
-        `--${boundary}\r\nContent-Disposition: form-data; name="model"\r\n\r\nwhisper-1\r\n` +
-        `--${boundary}\r\nContent-Disposition: form-data; name="response_format"\r\n\r\nsrt\r\n` +
+        `--${boundary}\r\nContent-Disposition: form-data; name="model"\r\n\r\n${customModel}\r\n` +
+        `--${boundary}\r\nContent-Disposition: form-data; name="response_format"\r\n\r\nverbose_json\r\n` +
         `--${boundary}\r\nContent-Disposition: form-data; name="file"; filename="audio.wav"\r\nContent-Type: audio/wav\r\n\r\n`
       );
       const tail      = Buffer.from(`\r\n--${boundary}--\r\n`);
       const multipart = Buffer.concat([head, audioData, tail]);
 
       const opts = {
-        hostname: 'api.openai.com',
-        path:     '/v1/audio/transcriptions',
+        hostname: hostname,
+        path:     pathStr,
         method:   'POST',
         headers:  {
           'Authorization': `Bearer ${apiKey}`,
@@ -221,16 +255,24 @@ function handleAPI(urlPath, q, req, res) {
           'Content-Length': multipart.length,
         },
       };
+      if (port) {
+        opts.port = parseInt(port, 10);
+      }
 
-      const oReq = https.request(opts, oRes => {
+      const client = protocol === 'http:' ? http : https;
+      const oReq = client.request(opts, oRes => {
         let data = '';
         oRes.on('data', c => { data += c; });
         oRes.on('end', () => {
+          let finalData = data;
+          if (oRes.statusCode === 200) {
+            finalData = verboseJsonToSRT(data);
+          }
           res.writeHead(oRes.statusCode, { 'Content-Type': 'text/plain' });
-          res.end(data);
+          res.end(finalData);
         });
       });
-      oReq.on('error', err => { res.writeHead(502); res.end('OpenAI request failed: ' + err.message); });
+      oReq.on('error', err => { res.writeHead(502); res.end('API request failed: ' + err.message); });
       oReq.write(multipart);
       oReq.end();
     });
@@ -279,7 +321,7 @@ const server = http.createServer((req, res) => {
     } else if (baseName === 'index.html') {
       res.setHeader('Cache-Control', 'public, max-age=3600');
     } else if (filePath.endsWith('.js') || filePath.endsWith('.css')) {
-      res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
+      res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
     } else {
       res.setHeader('Cache-Control', 'public, max-age=86400');
     }
@@ -298,3 +340,36 @@ server.listen(PORT, '127.0.0.1', () => {
   console.log('Server ffmpeg API: GET /api/status  POST /api/upload  POST /api/exec  POST /api/transcribe');
   console.log('Press Ctrl+C to stop.');
 });
+
+// Helper functions for converting verbose_json OpenAI transcription responses to SRT
+function formatTime(seconds) {
+  const h = Math.floor(seconds / 3600);
+  const m = Math.floor((seconds % 3600) / 60);
+  const s = Math.floor(seconds % 60);
+  const ms = Math.round((seconds % 1) * 1000);
+  
+  const pad = (num, len = 2) => String(num).padStart(len, '0');
+  return `${pad(h)}:${pad(m)}:${pad(s)},${pad(ms, 3)}`;
+}
+
+function verboseJsonToSRT(jsonStr) {
+  try {
+    const data = JSON.parse(jsonStr);
+    if (!data.segments || !Array.isArray(data.segments)) {
+      // If there are no segments, fall back to a single segment with the full text
+      const duration = data.duration || 0;
+      return `1\r\n00:00:00,000 --> ${formatTime(duration)}\r\n${data.text || ''}\r\n\r\n`;
+    }
+    
+    let srt = '';
+    data.segments.forEach((seg, index) => {
+      const startStr = formatTime(seg.start || 0);
+      const endStr = formatTime(seg.end || 0);
+      srt += `${index + 1}\r\n${startStr} --> ${endStr}\r\n${(seg.text || '').trim()}\r\n\r\n`;
+    });
+    return srt;
+  } catch (e) {
+    // If it's not valid JSON, just return the raw string
+    return jsonStr;
+  }
+}
