@@ -54,6 +54,10 @@
         <button class="mode-btn active" id="btnEngineBrowser" onclick="setEngine('browser')"><i class="fas fa-globe"></i> Browser</button>
         <button class="mode-btn" id="btnEngineServer" onclick="setEngine('server')"><i class="fas fa-server"></i> Server</button>
       </div>
+      <input type="text" id="serverUrlInput" placeholder="http://127.0.0.1:5500"
+             onchange="setServerUrl(this.value)"
+             title="Local native-ffmpeg server (node server.js). Used when this page is deployed elsewhere. Loopback only (127.0.0.1 / localhost)."
+             style="margin-left:8px;font-size:0.75rem;padding:3px 6px;width:160px;background:var(--surface);color:var(--text);border:1px solid var(--border);border-radius:5px">
     </div>
   </div>
 
@@ -472,6 +476,17 @@
                 </div>
               </div>
               <div class="form-row" style="margin-bottom:6px">
+                <div class="form-group" style="flex:1 1 100%">
+                  <label class="lbl">Provider</label>
+                  <select id="whisperProvider" onchange="applyWhisperProvider(this.value)" style="width:100%">
+                    <option value="openai">OpenAI (whisper-1)</option>
+                    <option value="groq">Groq (whisper-large-v3-turbo)</option>
+                    <option value="mistral">Mistral (voxtral-mini-latest)</option>
+                    <option value="custom">Custom…</option>
+                  </select>
+                </div>
+              </div>
+              <div class="form-row" style="margin-bottom:6px">
                 <div class="form-group">
                   <label class="lbl">Base URL</label>
                   <input type="text" id="whisperBaseUrl" placeholder="https://api.openai.com/v1" oninput="saveWhisperConfig()" style="width:100%">
@@ -481,7 +496,7 @@
                   <input type="text" id="whisperModelId" placeholder="whisper-1" oninput="saveWhisperConfig()" style="width:100%">
                 </div>
               </div>
-              <p class="hint" style="margin-top:4px">All fields saved locally in your browser. Supports any OpenAI-compatible endpoint (OpenAI, Azure OpenAI, Groq, local LLM servers, etc.). Requests are proxied through <code>server.js</code> — the token never reaches ffmpeg-webCLI's frontend host directly.</p>
+              <p class="hint" style="margin-top:4px">Pick a provider preset (OpenAI, Groq, Mistral) or choose Custom for any OpenAI-compatible endpoint. All fields saved locally in your browser. Requests are proxied through <code>server.js</code> — the token never reaches ffmpeg-webCLI's frontend host directly.</p>
             </div>
             <div class="form-row" id="whisperModelRow">
               <div class="form-group">

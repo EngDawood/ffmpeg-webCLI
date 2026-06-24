@@ -75,14 +75,42 @@ function getOrCreate(id) {
 }
 
 // ── API handler ───────────────────────────────────────────────────────────────
-function apiHeaders(res) {
+// Origins allowed to drive this local native ffmpeg from a different origin
+// (e.g. the deployed site reaching your `node server.js` over loopback).
+// Comma-separate multiple origins. Lock this down — `/api/exec` runs ffmpeg,
+// so never use '*'. Override at launch: ALLOWED_ORIGIN=https://example.com node server.js
+const ALLOWED_ORIGINS = (process.env.ALLOWED_ORIGIN || 'https://ffmpeg.engdawood.com')
+  .split(',').map(s => s.trim()).filter(Boolean);
+
+function apiHeaders(req, res) {
   res.setHeader('Cross-Origin-Opener-Policy',   'same-origin');
   res.setHeader('Cross-Origin-Embedder-Policy', 'require-corp');
-  res.setHeader('Cross-Origin-Resource-Policy', 'same-origin');
+  // cross-origin so a deployed, cross-origin-isolated page (COEP require-corp)
+  // can read API responses fetched from this loopback server.
+  res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
+
+  // CORS + Private Network Access for cross-origin (deployed page → loopback).
+  const origin = req.headers.origin;
+  if (origin && ALLOWED_ORIGINS.includes(origin)) {
+    res.setHeader('Access-Control-Allow-Origin', origin);
+    res.setHeader('Vary', 'Origin');
+    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, X-OpenAI-Key, X-OpenAI-Base-URL, X-OpenAI-Model');
+    // Chrome/Edge require this for a public site → private/loopback request.
+    res.setHeader('Access-Control-Allow-Private-Network', 'true');
+    res.setHeader('Access-Control-Max-Age', '86400');
+  }
 }
 
 function handleAPI(urlPath, q, req, res) {
-  apiHeaders(res);
+  apiHeaders(req, res);
+
+  // CORS / Private Network Access preflight.
+  if (req.method === 'OPTIONS') {
+    res.writeHead(204);
+    res.end();
+    return;
+  }
 
   // ── GET /api/status ───────────────────────────────────────────────────────
   if (urlPath === '/api/status' && req.method === 'GET') {

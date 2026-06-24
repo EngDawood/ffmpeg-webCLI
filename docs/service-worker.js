@@ -126,6 +126,13 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
+  // Never intercept /api/* — these hit the native-ffmpeg server (possibly a
+  // cross-origin loopback URL) and must run live with real CORS/PNA handling.
+  // Caching a /api/status response would also mask the server going away.
+  if (url.pathname.startsWith('/api/')) {
+    return;
+  }
+
   // Handle local app resources (network-first, fallback to cache)
   if (url.origin === self.location.origin) {
     event.respondWith(

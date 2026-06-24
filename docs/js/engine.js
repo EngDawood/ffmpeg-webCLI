@@ -19,6 +19,73 @@ import { addLog, syncProcessBtn } from './ui.js';
 // each pulling the CDN URL themselves.
 export { fetchFile };
 
+// ── Server base-URL resolution ──────────────────────────────────────────
+// All /api/* calls go through `_api()`, which prefixes the resolved base.
+// '' means same origin (the page is served by server.js directly); a value
+// like 'http://127.0.0.1:5500' means the page is deployed elsewhere and is
+// reaching a local native-ffmpeg server over loopback.
+
+/** Build a full /api/* URL using the resolved server base. */
+function _api(path) {
+  return (state.engine.serverBase || '') + path;
+}
+
+/** Probe one candidate base for a reachable, ffmpeg-capable server. */
+async function _probeServer(base) {
+  try {
+    const r = await fetch((base || '') + '/api/status', { method: 'GET' });
+    if (!r.ok) return false;
+    const j = await r.json();
+    return !!j.available;
+  } catch (_) {
+    return false;
+  }
+}
+
+/**
+ * Decide which base to use for native ffmpeg, and store it in
+ * `state.engine.serverBase`. Tries same-origin first (covers running
+ * `node server.js` and opening it directly on any port), then the
+ * configured local URL (covers the deployed page reaching loopback).
+ *
+ * @returns {Promise<boolean>} whether a native-ffmpeg server was found
+ */
+export async function resolveServerBase() {
+  if (await _probeServer('')) { state.engine.serverBase = ''; return true; }
+  const local = (state.engine.serverUrl || '').replace(/\/+$/, '');
+  if (local && await _probeServer(local)) { state.engine.serverBase = local; return true; }
+  state.engine.serverBase = '';
+  return false;
+}
+
+/** Update the configured local server URL and persist it. */
+export function setServerUrl(url) {
+  state.engine.serverUrl = (url || '').trim();
+  localStorage.setItem('ffServerUrl', state.engine.serverUrl);
+}
+
+/**
+ * On startup: fill the server-URL input and silently probe for a reachable
+ * native-ffmpeg server (same-origin first, then the configured loopback URL).
+ * If one is found and the user hasn't explicitly chosen Browser mode, switch
+ * to Server mode and verify it. Otherwise stay on WASM. Safe to call once.
+ */
+export async function autoDetectServer() {
+  const input = document.getElementById('serverUrlInput');
+  if (input) input.value = state.engine.serverUrl;
+
+  // Respect an explicit Browser-mode choice — don't override the user.
+  if (localStorage.getItem('ffEngine') === 'browser') return;
+
+  const found = await resolveServerBase();
+  if (!found) return;
+
+  const where = state.engine.serverBase || location.origin;
+  addLog(`Native ffmpeg server detected at ${where} — using it (switch to Browser anytime).`, 'ok');
+  setEngine('server');     // no-op if already in server mode
+  await loadFFmpeg();      // marks server mode ready
+}
+
 // ── Instantiate backends ────────────────────────────────────────────────
 state.engine.ffmpeg = new FFmpeg();
 
@@ -65,7 +132,7 @@ state.engine.serverFF = (() => {
       // Upload every queued file
       for (const [name, bytes] of _files) {
         const r = await fetch(
-          `/api/upload?session=${encodeURIComponent(session)}&name=${encodeURIComponent(name)}`,
+          _api(`/api/upload?session=${encodeURIComponent(session)}&name=${encodeURIComponent(name)}`),
           { method: 'POST', headers: { 'Content-Type': 'application/octet-stream' }, body: bytes }
         );
         if (!r.ok) throw new Error(`Upload failed for "${name}": ${await r.text()}`);
@@ -73,7 +140,7 @@ state.engine.serverFF = (() => {
       _progressHandlers.forEach(fn => fn({ progress: 0.05 }));
       _logHandlers.forEach(fn => fn({ message: `[server] ffmpeg ${args.join(' ')}` }));
 
-      const r = await fetch('/api/exec', {
+      const r = await fetch(_api('/api/exec'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ session, args }),
@@ -124,13 +191,17 @@ export async function loadFFmpeg() {
     txt.textContent = 'Checking server ffmpeg…';
     btn.disabled = true;
     try {
-      const resp = await fetch('/api/status');
-      if (!resp.ok) throw new Error('Server returned ' + resp.status);
-      const { available, reason } = await resp.json();
-      if (!available) throw new Error(reason || 'ffmpeg not found in server PATH');
+      // Resolve which base to use (same-origin or the configured loopback URL).
+      const found = await resolveServerBase();
+      if (!found) {
+        const resp = await fetch(_api('/api/status'));
+        const reason = resp.ok ? ((await resp.json()).reason) : ('Server returned ' + resp.status);
+        throw new Error(reason || 'ffmpeg not found in server PATH');
+      }
       state.engine.serverModeReady = true;
       dot.className = 'dot loaded';
-      txt.textContent = 'Server ffmpeg ready (native — no WASM download)';
+      const where = state.engine.serverBase || location.origin;
+      txt.textContent = `Server ffmpeg ready (native — ${where})`;
       btn.innerHTML  = '<i class="fas fa-check"></i> Ready';
       btn.className  = 'btn btn-success ml-auto';
       btn.disabled   = true;
@@ -265,6 +336,36 @@ export function setWhisperSource(source) {
   updateAutoCaptionInfo();
 }
 
+// Prebuilt OpenAI-compatible transcription providers. Selecting one fills the
+// Base URL + Model ID fields; the server proxy appends /audio/transcriptions
+// and parses verbose_json → SRT (so non-OpenAI APIs like Groq/Mistral work).
+export const WHISPER_PROVIDERS = {
+  openai:  { name: 'OpenAI',  baseUrl: 'https://api.openai.com/v1',      model: 'whisper-1' },
+  groq:    { name: 'Groq',    baseUrl: 'https://api.groq.com/openai/v1', model: 'whisper-large-v3-turbo' },
+  mistral: { name: 'Mistral', baseUrl: 'https://api.mistral.ai/v1',      model: 'voxtral-mini-latest' },
+};
+
+/** Map a base URL back to a provider id, or 'custom' if none matches. */
+function detectWhisperProvider(baseUrl) {
+  const u = (baseUrl || '').replace(/\/+$/, '');
+  for (const [id, p] of Object.entries(WHISPER_PROVIDERS)) {
+    if (p.baseUrl === u) return id;
+  }
+  return 'custom';
+}
+
+/**
+ * Apply a prebuilt provider preset: fill the Base URL + Model ID fields and
+ * persist. 'custom' (or unknown) leaves the fields untouched for manual entry.
+ */
+export function applyWhisperProvider(id) {
+  const p = WHISPER_PROVIDERS[id];
+  if (!p) return;  // Custom — keep whatever the user typed.
+  document.getElementById('whisperBaseUrl').value = p.baseUrl;
+  document.getElementById('whisperModelId').value = p.model;
+  saveWhisperConfig();
+}
+
 /**
  * Persist all three OpenAI-compatible endpoint fields (token, base URL,
  * model ID) to localStorage. Called on every keystroke from the inline
@@ -277,6 +378,9 @@ export function saveWhisperConfig() {
   localStorage.setItem('whisperApiKey',  state.whisper.apiKey);
   localStorage.setItem('whisperBaseUrl', state.whisper.baseUrl);
   localStorage.setItem('whisperModelId', state.whisper.modelId);
+  // Keep the provider dropdown in sync (shows "Custom" once you diverge).
+  const sel = document.getElementById('whisperProvider');
+  if (sel) sel.value = detectWhisperProvider(state.whisper.baseUrl);
 }
 
 /**
@@ -290,6 +394,8 @@ export function initWhisperConfigFields() {
   if (k) k.value = state.whisper.apiKey;
   if (b) b.value = state.whisper.baseUrl;
   if (m) m.value = state.whisper.modelId;
+  const s = document.getElementById('whisperProvider');
+  if (s) s.value = detectWhisperProvider(state.whisper.baseUrl);
 }
 
 // `updateAutoCaptionInfo` lives in autocaption.js but setWhisperSource
@@ -308,7 +414,7 @@ export async function transcribeViaAPI(audioSamples, apiKey) {
   const baseUrl = state.whisper.baseUrl || 'https://api.openai.com/v1';
   const modelId = state.whisper.modelId || 'whisper-1';
   addLog(`Sending audio to ${baseUrl} (model: ${modelId}) via server proxy…`, 'ok');
-  const resp = await fetch('/api/transcribe', {
+  const resp = await fetch(_api('/api/transcribe'), {
     method:  'POST',
     headers: {
       'Content-Type':       'audio/wav',

@@ -36,6 +36,13 @@ export const state = {
     serverModeReady: false,
     ffmpeg:   null,   // @ffmpeg/ffmpeg FFmpeg instance (set by engine.js)
     serverFF: null,   // server-adapter object (set by engine.js)
+    // Where a local native-ffmpeg server.js can be reached when this page is
+    // served from a different origin (e.g. the deployed site reaching the
+    // user's own `node server.js` on loopback). Loopback is exempt from
+    // mixed-content blocking, so plain http is fine.
+    serverUrl: localStorage.getItem('ffServerUrl') || 'http://127.0.0.1:5500',
+    // Resolved base prefix actually used for /api/* calls. '' = same origin.
+    serverBase: '',
   },
 
   // ── Whisper / Auto-Caption ─────────────────────────────────────────
