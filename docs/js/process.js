@@ -323,6 +323,19 @@ export async function runProcess() {
         // 4. On confirmation, embed subtitles into video
         // CRITICAL: Memory handoff between ffmpeg and whisper to avoid OOM
 
+        // If a transcript already exists (from a previous run), skip transcription
+        // and go straight to the embed step so the user can change burn/font/format
+        // without making another API call.
+        if (state.whisper.srt && state.whisper.srt.trim()) {
+          addLog('Transcript already available — skipping transcription. Edit or click Reset to re-transcribe.', 'ok');
+          document.getElementById('autoCaptionTranscript').value = state.whisper.srt;
+          document.getElementById('autoCaptionTranscriptPanel').classList.remove('hidden');
+          const reEmbedBtn = document.getElementById('confirmEmbedBtn');
+          reEmbedBtn.disabled = false;
+          reEmbedBtn.innerHTML = '<i class="fas fa-check"></i> Confirm & Embed';
+          return;
+        }
+
         ext = document.getElementById('autoCaptionFmt').value;
         const model = document.getElementById('autoCaptionModel').value;
 

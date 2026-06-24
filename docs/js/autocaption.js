@@ -203,7 +203,8 @@ export async function confirmAutoCaptionTranscript() {
     }
     state.whisper.transcriber = null;
     state.whisper.segments = null;
-    state.whisper.srt = null;
+    // state.whisper.srt is intentionally kept so the user can re-embed
+    // with different settings (burn, font, format) without re-transcribing.
 
     // Force garbage collection hint (non-standard but helps some engines)
     if (typeof gc === 'function') gc();
@@ -293,9 +294,10 @@ export async function confirmAutoCaptionTranscript() {
       }
     }
 
-    // Hide transcript panel
-    document.getElementById('autoCaptionTranscriptPanel').classList.add('hidden');
+    // Keep transcript panel visible so the user can change burn/font/format
+    // and re-embed without re-transcribing. "Reset" clears it for a fresh run.
     document.getElementById('progWrap').classList.add('hidden');
+    addLog('Done! Change settings and Confirm & Embed again, or click Reset to re-transcribe.', 'ok');
 
     // Re-enable buttons
     document.getElementById('processBtn').disabled = false;

@@ -84,7 +84,7 @@ state.engine.serverFF = (() => {
         try {
           const j = await r.json();
           msg = j.error || msg;
-          if (j.stderr) _logHandlers.forEach(fn => fn({ message: j.stderr }));
+          if (j.stderr) addLog(j.stderr.trim(), 'err');
         } catch (_) {}
         throw new Error(msg);
       }
