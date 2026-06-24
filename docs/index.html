@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="theme-color" content="#0d0f1a">
+  <meta name="theme-color" content="#0c0e13">
   <meta name="description" content="A progressive web app for video editing with ffmpeg.wasm. 100% local processing, no data leaves your browser.">
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
@@ -11,36 +11,83 @@
   <meta name="apple-mobile-web-app-title" content="ffmpeg webCLI">
   <title>ffmpeg webCLI</title>
   <link rel="manifest" href="manifest.json">
-  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'><rect fill='%235f7fe8' width='192' height='192' rx='45'/><path d='M60 80l48-28v96L60 120z' fill='%230d0f1a'/></svg>">
-  <link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'><rect fill='%235f7fe8' width='192' height='192' rx='45'/><path d='M60 80l48-28v96L60 120z' fill='%230d0f1a'/></svg>">
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'><rect fill='%233b82f6' width='192' height='192' rx='45'/><path d='M60 80l48-28v96L60 120z' fill='%230d0f1a'/></svg>">
+  <link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'><rect fill='%233b82f6' width='192' height='192' rx='45'/><path d='M60 80l48-28v96L60 120z' fill='%230d0f1a'/></svg>">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+  <script>
+    (function () {
+      var saved = localStorage.getItem('fwc-theme') || 'dark';
+      document.documentElement.setAttribute('data-theme', saved);
+    })();
+    function toggleTheme() {
+      var root = document.documentElement;
+      var cur = root.getAttribute('data-theme') === 'light' ? 'light' : 'dark';
+      var next = cur === 'light' ? 'dark' : 'light';
+      root.classList.add('theme-switching');
+      root.setAttribute('data-theme', next);
+      localStorage.setItem('fwc-theme', next);
+      void root.offsetWidth;
+      requestAnimationFrame(function () { requestAnimationFrame(function () { root.classList.remove('theme-switching'); }); });
+      syncThemeToggle();
+    }
+    function syncThemeToggle() {
+      var t = document.getElementById('themeToggle');
+      if (!t) return;
+      var light = document.documentElement.getAttribute('data-theme') === 'light';
+      t.innerHTML = light ? '<i class="fa-solid fa-sun"></i>' : '<i class="fa-solid fa-moon"></i>';
+      var meta = document.querySelector('meta[name="theme-color"]');
+      if (meta) meta.setAttribute('content', light ? '#E7EAF1' : '#0c0e13');
+    }
+    document.addEventListener('DOMContentLoaded', syncThemeToggle);
+  </script>
   <style>
     :root {
-      --bg: #0d0f1a;
-      --surface: #151827;
-      --surface2: #1e2236;
-      --surface3: #252a42;
-      --accent: #3665b6;
-      --accent-h: #81e2f8;
-      --success: #70db97;
+      --bg: #0c0e13;
+      --surface: #14171f;
+      --surface2: #1b1f29;
+      --surface3: #252a36;
+      --accent: #4d8bff;
+      --accent-h: #74a4ff;
+      --accent2: #ff8c42;
+      --accent2-h: #ffa566;
+      --success: #34d399;
       --danger: #ef4444;
       --warn: #f59e0b;
-      --text: #e2e8f0;
-      --muted: #94a3b8;
-      --border: #5b515f;
+      --text: #eceff5;
+      --muted: #98a2b3;
+      --border: #2a303c;
       --r: 10px;
     }
+    [data-theme="light"] {
+      --bg: #E7EAF1;
+      --surface: #FFFFFF;
+      --surface2: #F4F7FE;
+      --surface3: #E5EDFD;
+      --accent: #1D5BD6;
+      --accent-h: #2C6BEF;
+      --accent2: #F5841F;
+      --accent2-h: #FB9A33;
+      --success: #2E7D52;
+      --danger: #DC2626;
+      --warn: #C2611B;
+      --text: #1A2233;
+      --muted: #6B7385;
+      --border: #DCE3F0;
+    }
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    .theme-switching *, .theme-switching *::before, .theme-switching *::after { transition: none !important; }
     body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
 
     /* ── Header ── */
     header { background: var(--surface); border-bottom: 1px solid var(--border); padding: 14px 24px; display: flex; align-items: center; gap: 10px; }
     header h1 { font-size: 1.15rem; font-weight: 700; letter-spacing: -0.02em; }
-    .pill { font-size: 0.7rem; padding: 2px 9px; border-radius: 20px; background: rgba(99,102,241,.18); color: var(--accent); font-weight: 600; }
+    .pill { font-size: 0.7rem; padding: 2px 9px; border-radius: 20px; background: rgba(77,139,255,.16); color: var(--accent); font-weight: 600; }
     .badge-local { font-size: 0.7rem; padding: 2px 9px; border-radius: 20px; background: rgba(34,197,94,.15); color: var(--success); font-weight: 600; display: inline-flex; align-items: center; gap: 4px; white-space: nowrap; }
     .gh-link { margin-left: auto; display: inline-flex; align-items: center; gap: 6px; font-size: 0.78rem; font-weight: 600; color: var(--muted); text-decoration: none; padding: 5px 12px; border-radius: 7px; border: 1px solid var(--border); background: var(--surface2); transition: color .15s, border-color .15s, background .15s; white-space: nowrap; }
     .gh-link:hover { color: var(--text); border-color: var(--accent); background: var(--surface3); }
+    .theme-toggle { display: inline-flex; align-items: center; justify-content: center; width: 34px; height: 34px; border-radius: 7px; border: 1px solid var(--border); background: var(--surface2); color: var(--muted); cursor: pointer; font-size: 0.95rem; transition: color .15s, border-color .15s, background .15s; }
+    .theme-toggle:hover { color: var(--accent2); border-color: var(--accent2); background: var(--surface3); }
     @media (max-width: 600px) { .gh-link span { display: none; } .gh-link { padding: 5px 9px; } }
 
     /* ── Layout ── */
@@ -77,7 +124,7 @@
 
     /* ── Upload zone ── */
     .drop-zone { border: 2px dashed var(--border); border-radius: var(--r); padding: 36px 20px; text-align: center; cursor: pointer; transition: border-color .2s, background .2s; background: var(--surface2); }
-    .drop-zone:hover, .drop-zone.over { border-color: var(--accent); background: rgba(99,102,241,.07); }
+    .drop-zone:hover, .drop-zone.over { border-color: var(--accent); background: rgba(77,139,255,.08); }
     .drop-zone svg { width: 36px; height: 36px; color: var(--muted); margin-bottom: 10px; }
     .drop-zone p { font-size: 0.83rem; color: var(--muted); }
     .drop-zone strong { color: var(--accent); }
@@ -94,14 +141,14 @@
     input[type="range"] { width: 100%; accent-color: var(--accent); cursor: pointer; }
     .time-val { font-size: 0.78rem; color: var(--text); text-align: center; margin-top: 2px; }
     .timeline { position: relative; height: 32px; background: var(--surface2); border-radius: 5px; margin: 10px 0 6px; overflow: hidden; }
-    .tl-fill { position: absolute; height: 100%; background: rgba(99,102,241,.3); border-left: 2px solid var(--accent); border-right: 2px solid var(--accent); transition: left .05s, width .05s; }
+    .tl-fill { position: absolute; height: 100%; background: rgba(77,139,255,.28); border-left: 2px solid var(--accent); border-right: 2px solid var(--accent); transition: left .05s, width .05s; }
     .tl-labels { display: flex; justify-content: space-between; font-size: 0.72rem; color: var(--muted); }
 
     /* ── Op picker ── */
     .ops-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; margin-bottom: 14px; }
     .op-tile { background: var(--surface2); border: 2px solid var(--border); border-radius: 8px; padding: 9px 10px; cursor: pointer; text-align: center; font-size: 0.8rem; font-weight: 600; color: var(--muted); transition: all .15s; }
     .op-tile:hover { border-color: var(--accent); color: var(--accent); }
-    .op-tile.active { border-color: var(--accent); background: rgba(99,102,241,.12); color: var(--accent); }
+    .op-tile.active { border-color: var(--accent2); background: rgba(255,140,66,.14); color: var(--accent2-h); }
     .op-tile.disabled { opacity: 0.4; cursor: not-allowed; }
     .op-tile.disabled:hover { border-color: var(--border); color: var(--muted); }
     .op-tile i { display: block;     font-size: 30px;
@@ -207,7 +254,7 @@
     .progress-wrap { margin: 12px 0; width: 100%; }
     .progress-header { display: flex; justify-content: space-between; font-size: 0.78rem; color: var(--muted); margin-bottom: 5px; }
     .progress-track { height: 5px; background: var(--surface3); border-radius: 3px; overflow: hidden; width: 100%; }
-    .progress-fill { height: 100%; background: var(--accent); border-radius: 3px; transition: width .2s ease; width: 0%; }
+    .progress-fill { height: 100%; background: linear-gradient(90deg, var(--accent), var(--accent2)); border-radius: 3px; transition: width .2s ease; width: 0%; }
 
     /* ── Log ── */
     .log { font-family: 'SF Mono', 'Fira Code', 'Courier New', monospace; font-size: 0.73rem; background: #080a10; color: #7dd3fc; padding: 12px;height: 130px; overflow-y: auto; line-height: 1.55; border-radius: 0 0 var(--r) var(--r); }
@@ -227,7 +274,7 @@
     .size-delta.larger  { color: var(--danger); }
 
     .hidden { display: none !important; }
-    .tag { font-size: 0.7rem; font-weight: 600; padding: 1px 7px; border-radius: 4px; background: rgba(99,102,241,.18); color: var(--accent); margin-left: 6px; }
+    .tag { font-size: 0.7rem; font-weight: 600; padding: 1px 7px; border-radius: 4px; background: rgba(77,139,255,.16); color: var(--accent); margin-left: 6px; }
 
     /* ── Responsive ── */
     @media (max-width: 480px) {
@@ -286,19 +333,23 @@
     .raw-examples-details[open] .rex-arrow { transform: rotate(90deg); }
     .rex-list { padding: 7px; display: grid; gap: 5px; background: var(--surface2); }
     .raw-example-btn { width: 100%; background: var(--surface); border: 1px solid var(--border); border-radius: 6px; padding: 7px 10px; cursor: pointer; text-align: left; display: flex; align-items: baseline; gap: 10px; transition: border-color .15s, background .15s; }
-    .raw-example-btn:hover { border-color: var(--accent); background: rgba(99,102,241,.07); }
+    .raw-example-btn:hover { border-color: var(--accent); background: rgba(77,139,255,.08); }
     .rex-label { font-size: 0.8rem; font-weight: 600; color: var(--text); white-space: nowrap; flex-shrink: 0; }
     .rex-code { font-family: 'SF Mono', 'Fira Code', 'Courier New', monospace; font-size: 0.7rem; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; min-width: 0; }
     /* ── Raw example "+2nd file" badge ── */
     .rex-input2-badge { font-size: 0.68rem; font-weight: 700; padding: 1px 6px; border-radius: 4px; background: rgba(245,158,11,.18); color: var(--warn); white-space: nowrap; flex-shrink: 0; }
     @keyframes input2-pulse { 0%,100% { box-shadow: 0 0 0 0 rgba(245,158,11,0); } 30% { box-shadow: 0 0 0 3px rgba(245,158,11,.55); } }
     .input2-highlight { animation: input2-pulse 1s ease; border-radius: 7px; }
+
+    /* ── Engine mode toggle (Browser WASM vs Server native) ── */
+    .engine-toggle-wrap { display:inline-flex; align-items:center; gap:6px; margin-left:8px; }
+    #whisperApiKeyRow input[type="password"] { font-family: 'SF Mono','Fira Code','Courier New',monospace; letter-spacing:.04em; }
   </style>
 </head>
 <body>
 
 <header>
-  <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#6366f1" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+  <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#ff8c42" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
     <path d="M15 10l4.553-2.069A1 1 0 0121 8.871v6.258a1 1 0 01-1.447.894L15 14"/>
     <rect x="2" y="6" width="13" height="12" rx="2"/>
   </svg>
@@ -312,6 +363,7 @@
     <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.477 2 2 6.477 2 12c0 4.418 2.865 8.166 6.839 9.489.5.092.682-.217.682-.482 0-.237-.009-.868-.013-1.703-2.782.604-3.369-1.341-3.369-1.341-.454-1.155-1.11-1.463-1.11-1.463-.908-.62.069-.608.069-.608 1.003.07 1.531 1.03 1.531 1.03.892 1.529 2.341 1.087 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.11-4.555-4.943 0-1.091.39-1.984 1.029-2.683-.103-.253-.446-1.27.098-2.647 0 0 .84-.269 2.75 1.025A9.564 9.564 0 0112 6.844a9.59 9.59 0 012.504.337c1.909-1.294 2.747-1.025 2.747-1.025.546 1.377.203 2.394.1 2.647.64.699 1.028 1.592 1.028 2.683 0 3.842-2.339 4.687-4.566 4.935.359.309.678.919.678 1.852 0 1.336-.012 2.415-.012 2.743 0 .267.18.578.688.48C19.138 20.163 22 16.418 22 12c0-5.523-4.477-10-10-10z"/></svg>
     <span>Fork on GitHub</span>
   </a>
+  <button class="theme-toggle" id="themeToggle" onclick="toggleTheme()" title="Toggle light / dark theme" aria-label="Toggle theme"><i class="fa-solid fa-moon"></i></button>
 
 
   </header> 
@@ -322,6 +374,12 @@
     <div class="dot" id="statusDot"></div>
     <span id="statusText">ffmpeg not loaded - click "Load ffmpeg" to begin</span>
     <button class="btn btn-primary ml-auto" id="loadBtn" onclick="loadFFmpeg()"><i class="fas fa-play"></i> Load ffmpeg (~31 MB)</button>
+    <div class="engine-toggle-wrap" title="Switch ffmpeg engine: Browser (WASM, no install needed) or Server (native ffmpeg via server.js)">
+      <div class="mode-toggle" id="engineToggle">
+        <button class="mode-btn active" id="btnEngineBrowser" onclick="setEngine('browser')"><i class="fas fa-globe"></i> Browser</button>
+        <button class="mode-btn" id="btnEngineServer" onclick="setEngine('server')"><i class="fas fa-server"></i> Server</button>
+      </div>
+    </div>
   </div>
 
   <div class="grid">
@@ -336,7 +394,7 @@
             <p id="dropZoneText"><strong>Click to choose</strong> or drag & drop local file</p>
             <p style="margin-top:5px;font-size:.72rem">MP4, WebM, MOV, AVI, MKV, GIF…</p>
           </div>
-          <input type="file" id="fileInput" accept="video/*,image/gif" onchange="handleFileInput(this)">
+          <input type="file" id="fileInput" accept="video/*,audio/*,image/gif" onchange="handleFileInput(this)">
           <div id="inputWrap" class="hidden" style="margin-top:12px">
             <video id="inputVideo" controls></video>
             <div class="file-meta">
@@ -707,7 +765,22 @@
           <!-- Auto-Caption (Whisper-powered speech-to-text) -->
           <div class="op-panel hidden" id="panel-autocaption">
             <h4>Auto-Caption (Whisper)</h4>
-            <div class="form-row">
+            <!-- Transcription source: local Whisper.js or OpenAI API -->
+            <div class="form-row" style="margin-bottom:10px">
+              <div class="form-group">
+                <label class="lbl">Transcription Source</label>
+                <div class="mode-toggle" id="whisperSrcToggle">
+                  <button class="mode-btn active" id="btnWhisperLocal" onclick="setWhisperSource('local')"><i class="fas fa-microchip"></i> Local</button>
+                  <button class="mode-btn" id="btnWhisperAPI" onclick="setWhisperSource('api')"><i class="fas fa-cloud"></i> OpenAI API</button>
+                </div>
+              </div>
+            </div>
+            <div id="whisperApiKeyRow" class="hidden" style="margin-bottom:10px">
+              <label class="lbl">OpenAI API Key</label>
+              <input type="password" id="whisperApiKey" placeholder="sk-..." oninput="saveWhisperApiKey()" style="width:100%">
+              <p class="hint" style="margin-top:4px">Saved locally in your browser. Sent only to OpenAI (via the local server proxy when server.js is running).</p>
+            </div>
+            <div class="form-row" id="whisperModelRow">
               <div class="form-group">
                 <label class="lbl">Whisper Model</label>
                 <select id="autoCaptionModel" onchange="updateAutoCaptionInfo()">
@@ -721,6 +794,7 @@
                 <select id="autoCaptionFmt">
                   <option value="mp4">MP4</option>
                   <option value="mkv">MKV</option>
+                  <option value="srt">SRT only (download, no embed)</option>
                 </select>
               </div>
             </div>
@@ -748,7 +822,7 @@
                 <button class="btn btn-success btn-sm" id="confirmEmbedBtn" disabled onclick="confirmAutoCaptionTranscript()"><i class="fas fa-check"></i> Confirm & Embed</button>
               </div>
             </div>
-            <p class="hint" style="margin-top:8px"><strong style="color:var(--text)">Process is 100% local:</strong> audio is extracted, transcribed on-device with Whisper via Transformers.js, and embedded as soft subtitles. Zero data leaves your browser.</p>
+            <p class="hint" id="autoCaptionModeHint" style="margin-top:8px"><strong style="color:var(--text)">Local mode:</strong> audio extracted and transcribed on-device via Transformers.js. Zero data leaves your browser.</p>
           </div>
 
           <!-- Volume -->
@@ -1177,6 +1251,86 @@ function blobToDataURL(blob) {
 
 // ── State ────────────────────────────────────────────
 const ffmpeg = new FFmpeg();
+
+// ── Server-mode ffmpeg adapter ────────────────────────────────────────────────
+// Drop-in replacement for the @ffmpeg/ffmpeg FFmpeg instance; routes all work
+// through the local server.js API instead of the WASM runtime.
+const serverFF = (() => {
+  const _files = new Map(); // name → Uint8Array (files queued for the next exec)
+  let _output     = null;   // Uint8Array from the last exec
+  let _outputName = null;   // last arg of the last exec (the output filename)
+  const _logHandlers      = [];
+  const _progressHandlers = [];
+
+  function _session() {
+    return 's' + Date.now().toString(36) + Math.random().toString(36).slice(2, 5);
+  }
+
+  return {
+    on(event, fn) {
+      if (event === 'log')      _logHandlers.push(fn);
+      if (event === 'progress') _progressHandlers.push(fn);
+    },
+
+    async writeFile(name, data) {
+      _files.set(name, data instanceof Uint8Array ? data : new Uint8Array(data.buffer ?? data));
+    },
+
+    async readFile(name) {
+      if (_outputName && name === _outputName) return _output ?? new Uint8Array(0);
+      if (_files.has(name)) return _files.get(name);
+      return new Uint8Array(0);
+    },
+
+    async deleteFile(name) {
+      _files.delete(name);
+      if (name === _outputName) { _output = null; _outputName = null; }
+    },
+
+    async exec(args) {
+      const session = _session();
+      // Upload every queued file
+      for (const [name, bytes] of _files) {
+        const r = await fetch(
+          `/api/upload?session=${encodeURIComponent(session)}&name=${encodeURIComponent(name)}`,
+          { method: 'POST', headers: { 'Content-Type': 'application/octet-stream' }, body: bytes }
+        );
+        if (!r.ok) throw new Error(`Upload failed for "${name}": ${await r.text()}`);
+      }
+      _progressHandlers.forEach(fn => fn({ progress: 0.05 }));
+      _logHandlers.forEach(fn => fn({ message: `[server] ffmpeg ${args.join(' ')}` }));
+
+      const r = await fetch('/api/exec', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ session, args }),
+      });
+
+      if (!r.ok) {
+        let msg = `Server ffmpeg failed (${r.status})`;
+        try {
+          const j = await r.json();
+          msg = j.error || msg;
+          if (j.stderr) _logHandlers.forEach(fn => fn({ message: j.stderr }));
+        } catch (_) {}
+        throw new Error(msg);
+      }
+
+      _output     = new Uint8Array(await r.arrayBuffer());
+      _outputName = args[args.length - 1];
+      _progressHandlers.forEach(fn => fn({ progress: 1 }));
+      return 0;
+    },
+
+    async terminate() {
+      _files.clear(); _output = null; _outputName = null;
+    },
+  };
+})();
+
+/** Returns the active ffmpeg instance (WASM or server adapter). */
+function getFF() { return useServerMode ? serverFF : ffmpeg; }
+
 let inputFile = null;
 let inputExt  = '';
 let vidDur    = 0;
@@ -1198,6 +1352,15 @@ let autoCaptionTranscriber = null;  // Transcriber instance (reusable across mul
 let autoCaptionSegments = null;     // Segments from transcription before editing
 let autoCaptionSRT = null;          // Generated SRT content (editable by user)
 let autoCaptionInProgress = false;  // Track if transcription is in progress
+
+// ── Engine mode: 'browser' (ffmpeg.wasm) or 'server' (native ffmpeg via server.js) ──
+let useServerMode  = localStorage.getItem('ffEngine') === 'server';
+let serverModeReady = false;
+
+// ── Whisper source: 'local' (Transformers.js) or 'api' (OpenAI via server proxy) ──
+let whisperSource = localStorage.getItem('whisperSource') || 'local';
+let whisperApiKey = localStorage.getItem('whisperApiKey') || '';
+
 const CROP_MIN_PX = 24;
 const cropState = { x: 0, y: 0, w: 0, h: 0, drag: null };
 
@@ -1489,11 +1652,42 @@ document.addEventListener('visibilitychange', () => {
   }
 });
 
-// ── Load ffmpeg ───────────────────────────────────────
+// ── Load / check ffmpeg ───────────────────────────────
 async function loadFFmpeg() {
   const btn  = document.getElementById('loadBtn');
   const dot  = document.getElementById('statusDot');
   const txt  = document.getElementById('statusText');
+
+  if (useServerMode) {
+    dot.className = 'dot loading';
+    txt.textContent = 'Checking server ffmpeg…';
+    btn.disabled = true;
+    try {
+      const resp = await fetch('/api/status');
+      if (!resp.ok) throw new Error('Server returned ' + resp.status);
+      const { available, reason } = await resp.json();
+      if (!available) throw new Error(reason || 'ffmpeg not found in server PATH');
+      serverModeReady = true;
+      dot.className = 'dot loaded';
+      txt.textContent = 'Server ffmpeg ready (native — no WASM download)';
+      btn.innerHTML  = '<i class="fas fa-check"></i> Ready';
+      btn.className  = 'btn btn-success ml-auto';
+      btn.disabled   = true;
+      addLog('Server-mode ffmpeg ready. All processing runs natively via localhost.', 'ok');
+      syncProcessBtn();
+    } catch (err) {
+      serverModeReady = false;
+      dot.className   = 'dot';
+      txt.textContent = 'Server check failed: ' + (err.message || err);
+      btn.innerHTML   = '<i class="fas fa-server"></i> Check Server';
+      btn.className   = 'btn btn-primary ml-auto';
+      btn.disabled    = false;
+      addLog('Server check error: ' + (err.message || err), 'err');
+    }
+    return;
+  }
+
+  // Browser WASM mode
   dot.className = 'dot loading';
   txt.textContent = 'Downloading ffmpeg-core (~31 MB)…';
   btn.disabled = true;
@@ -2115,7 +2309,7 @@ async function runProcess() {
     await requestWakeLock();
     
     addLog('Writing input file…', 'ok');
-    await ffmpeg.writeFile(inName, await fetchFile(inputFile));
+    await getFF().writeFile(inName, await fetchFile(inputFile));
 
     const trimS   = parseFloat(document.getElementById('trimStart').value);
     const trimE   = parseFloat(document.getElementById('trimEnd').value);
@@ -2334,7 +2528,7 @@ async function runProcess() {
         const burnMethod = document.querySelector('input[name="subsBurnMethod"]:checked').value;
         
         addLog('Writing subtitle file…', 'ok');
-        await ffmpeg.writeFile(subsName, await fetchFile(subtitleFile));
+        await getFF().writeFile(subsName, await fetchFile(subtitleFile));
         
         // Reset args
         args.length = 0;
@@ -2350,7 +2544,7 @@ async function runProcess() {
 
           let subContent;
           try {
-            subContent = new TextDecoder().decode(await ffmpeg.readFile(subsName));
+            subContent = new TextDecoder().decode(await getFF().readFile(subsName));
           } catch (e) {
             throw new Error(`Subtitle file not found in ffmpeg filesystem: ${e.message}`);
           }
@@ -2397,44 +2591,58 @@ async function runProcess() {
           addLog('Stage 1/3: Extracting audio\u2026', 'ok');
           const audioBuffer = await extractAudioAsWAV();
           
-          // ── MEMORY OPTIMIZATION: Unload ffmpeg.wasm (31 MB) before transcription ──
-          // Whisper doesn't need ffmpeg; unloading it frees up 31 MB during the potentially
-          // long transcription phase. We'll reload ffmpeg before embedding subtitles (Stage 3).
-          addLog('Unloading ffmpeg.wasm to free memory during transcription…', 'ok');
-          try {
-            await ffmpeg.terminate();
-            console.log('ffmpeg.wasm unloaded successfully');
-          } catch (e) {
-            console.warn('Error unloading ffmpeg.wasm:', e);
+          // Only unload WASM ffmpeg in local-whisper browser mode (frees 31 MB during long transcription)
+          if (!useServerMode && whisperSource === 'local') {
+            addLog('Unloading ffmpeg.wasm to free memory during transcription…', 'ok');
+            try {
+              await ffmpeg.terminate();
+            } catch (e) {
+              console.warn('Error unloading ffmpeg.wasm:', e);
+            }
           }
-          
-          // STEP 2: Initialize Transcriber and transcribe
+
+          // STEP 2: Transcribe
           addLog('Stage 2/3: Transcribing with Whisper\u2026', 'ok');
           
           // Show progress bar
           const progWrap = document.getElementById('progWrap');
           progWrap.classList.remove('hidden');
-          
-          // Initialize main progress bar to 0%
           document.getElementById('progPct').textContent = '0%';
           document.getElementById('progFill').style.width = '0%';
-          document.getElementById('progLabel').textContent = 'Loading model\u2026';
-          
-          const transcriber = await initializeAutoCaptionTranscriber();
-          
-          // Create progress UI updater for transcription
-          const updateProgress = (prog) => {
-            console.log('updateProgress called with:', prog);
-            
-            // Ensure prog is an object
-            if (typeof prog !== 'object' || !prog) {
-              console.warn('Invalid progress object:', prog);
-              return;
-            }
 
+          let segments;
+
+          if (whisperSource === 'api') {
+            // \u2500\u2500 OpenAI Whisper API mode \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
+            if (!whisperApiKey) throw new Error('No OpenAI API key set. Add it in the Auto-Caption panel.');
+            document.getElementById('progLabel').textContent = 'Sending to OpenAI Whisper API\u2026';
+            const rawSrt = await transcribeViaAPI(audioBuffer, whisperApiKey);
+            segments = [];
+            for (const block of rawSrt.trim().split(/\n\s*\n/)) {
+              const lines = block.trim().split('\n');
+              const tcLine = lines.find(l => l.includes('-->'));
+              if (!tcLine) continue;
+              const [startStr, endStr] = tcLine.split('-->').map(s => s.trim());
+              const parseTime = t => {
+                const [hms, ms] = t.replace(',', '.').split('.');
+                const parts = hms.split(':').map(Number);
+                const [h, m, s] = parts.length === 3 ? parts : [0, ...parts];
+                return h * 3600 + m * 60 + s + Number('0.' + (ms || '0'));
+              };
+              const text = lines.slice(lines.indexOf(tcLine) + 1).join(' ').trim();
+              if (text) segments.push({ start: parseTime(startStr), end: parseTime(endStr), text });
+            }
+            document.getElementById('progPct').textContent = '100%';
+            document.getElementById('progFill').style.width = '100%';
+            document.getElementById('progLabel').textContent = 'Transcription complete';
+          } else {
+            // \u2500\u2500 Local Whisper (Transformers.js) mode \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
+            document.getElementById('progLabel').textContent = 'Loading model\u2026';
+            const transcriber = await initializeAutoCaptionTranscriber();
+          
+          const updateProgress = (prog) => {
+            if (typeof prog !== 'object' || !prog) return;
             let pct, label;
-            
-            // Handle Transformers.js progress format (for model download)
             if (prog.status === 'progress' || prog.status === 'downloading') {
               const loaded = prog.loaded || 0;
               const total = prog.total || 1;
@@ -2447,51 +2655,19 @@ async function runProcess() {
               pct = prog.pct;
               label = prog.label || `Transcribing\u2026 ${pct}%`;
               console.log('Transcription progress detected: pct=' + pct + ', label=' + label);
-            } else {
-              console.log('Progress object did not match any format:', prog);
             }
-            
-            // Update progress bar if we have a valid percentage
-            console.log('Before DOM update: pct=' + pct + ', typeof pct=' + (typeof pct));
             if (typeof pct === 'number' && pct >= 0) {
-              console.log('Entering DOM update block, pct=' + pct);
-              const progPct = document.getElementById('progPct');
-              const progFill = document.getElementById('progFill');
-              const progLabel = document.getElementById('progLabel');
-              
-              console.log('DOM elements found - progPct:', !!progPct, 'progFill:', !!progFill, 'progLabel:', !!progLabel);
-              
-              if (progPct) {
-                progPct.textContent = `${pct}%`;
-                console.log('Updated progPct text to:', progPct.textContent);
-              } else {
-                console.warn('progPct element not found');
-              }
-              if (progFill) {
-                const oldWidth = progFill.style.width;
-                progFill.style.width = `${pct}%`;
-                console.log('Updated progFill width from', oldWidth, 'to', progFill.style.width, '| computed width:', window.getComputedStyle(progFill).width);
-              } else {
-                console.warn('progFill element not found');
-              }
-              if (progLabel) {
-                progLabel.textContent = label;
-                console.log('Updated progLabel to:', label);
-              } else {
-                console.warn('progLabel element not found');
-              }
-            } else {
-              console.log('Skipping DOM update: pct not a valid number');
+              document.getElementById('progPct').textContent = `${pct}%`;
+              document.getElementById('progFill').style.width = `${pct}%`;
+              document.getElementById('progLabel').textContent = label;
             }
           };
-          
-          const segments = await transcriber.transcribe(audioBuffer, {
+          segments = await transcriber.transcribe(audioBuffer, {
             model: model,
             sampleRate: 16000,
             onModelProgress: updateProgress,
             onProgress: updateProgress,
             onStatus: (status) => {
-              // Reset progress bar to 0% when transcription starts
               if (status.stage === 'transcribing') {
                 document.getElementById('progPct').textContent = '0%';
                 document.getElementById('progFill').style.width = '0%';
@@ -2499,64 +2675,54 @@ async function runProcess() {
               }
             },
           });
-          
-          autoCaptionSegments = segments;
-          
-          // Ensure main progress bar is at 100%
           document.getElementById('progPct').textContent = '100%';
           document.getElementById('progFill').style.width = '100%';
           document.getElementById('progLabel').textContent = 'Transcription complete';
+          } // end else (local whisper)
           
+          autoCaptionSegments = segments;
           addLog(`Transcription complete: ${segments.length} segments`, 'ok');
-          
+
           // STEP 3: Show transcript for editing
-          addLog('Stage 3/3: Ready for review\u2026', 'ok');
+          addLog('Stage 3/3: Ready for review…', 'ok');
           updateAutoCaptionTranscript();
           pw.classList.add('hidden');
-          
-          // ── MEMORY OPTIMIZATION: Preemptively reload ffmpeg while user reviews transcript ──
-          // Start reloading ffmpeg in the background; disable Confirm & Embed until ready
+
           const confirmBtn = document.getElementById('confirmEmbedBtn');
-          confirmBtn.disabled = true;
-          confirmBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Loading ffmpeg\u2026';
-          
-          addLog('Preparing ffmpeg.wasm for subtitle embedding\u2026', 'ok');
-          (async () => {
-            try {
-              if (!isLoaded()) {
-                await loadFFmpeg();
+          if (!useServerMode && whisperSource === 'local') {
+            // Browser WASM mode: ffmpeg was terminated — reload in background
+            confirmBtn.disabled = true;
+            confirmBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Loading ffmpeg…';
+            addLog('Preparing ffmpeg.wasm for subtitle embedding…', 'ok');
+            (async () => {
+              try {
+                if (!isLoaded()) await loadFFmpeg();
+                confirmBtn.disabled = false;
+                confirmBtn.innerHTML = '<i class="fas fa-check"></i> Confirm & Embed';
+                addLog('ffmpeg.wasm ready.', 'ok');
+              } catch (e) {
+                addLog('Warning: Could not preload ffmpeg. Will retry on Confirm & Embed.', 'warn');
+                confirmBtn.disabled = false;
+                confirmBtn.innerHTML = '<i class="fas fa-check"></i> Confirm & Embed';
               }
-              // ffmpeg ready - enable the button
-              confirmBtn.disabled = false;
-              confirmBtn.innerHTML = '<i class="fas fa-check"></i> Confirm & Embed';
-              addLog('ffmpeg.wasm ready - you can now embed subtitles', 'ok');
-            } catch (e) {
-              console.error('Error preloading ffmpeg:', e);
-              addLog('Warning: Could not preload ffmpeg. It will attempt to load when you click Confirm & Embed.', 'warn');
-              // Still enable the button so user can try - confirmAutoCaptionTranscript will attempt to load
-              confirmBtn.disabled = false;
-              confirmBtn.innerHTML = '<i class="fas fa-check"></i> Confirm & Embed';
-            }
-          })();
-          
-          // Wait for user to confirm transcript or make edits
-          // User will click "Confirm & Embed" button which calls confirmAutoCaptionTranscript()
-          // For now, we're done with the automatic part
-          return; // Early return - don't execute ffmpeg yet
-          
+            })();
+          } else {
+            confirmBtn.disabled = false;
+            confirmBtn.innerHTML = '<i class="fas fa-check"></i> Confirm & Embed';
+          }
+          return; // User clicks Confirm & Embed to continue
+
         } catch (err) {
           pw.classList.add('hidden');
           const errorMsg = err && err.message ? err.message : (err ? String(err) : 'Unknown error');
           const friendly = /failed to fetch/i.test(errorMsg)
-            ? `${errorMsg} — could not download the Whisper model. Check your network connection and try again.`
+            ? `${errorMsg} — could not reach the model or API. Check your network or API key.`
             : errorMsg;
           addLog(`Auto-Caption error: ${friendly}`, 'err');
-          // ffmpeg.wasm was terminated to free memory for transcription. Reload it
-          // so the app stays usable for the next operation.
-          try { await loadFFmpeg(); } catch (_) { /* will reload lazily on next op */ }
+          if (!useServerMode && whisperSource === 'local') {
+            try { await loadFFmpeg(); } catch (_) {}
+          }
           document.getElementById('processBtn').disabled = false;
-          // CRITICAL: return so we don't fall through into the next switch case
-          // (e.g. 'volume'), which would run on a just-unloaded ffmpeg.
           return;
         }
         break;
@@ -2586,7 +2752,7 @@ async function runProcess() {
         if (!overlayFile) throw new Error('Please choose a logo/image file first.');
         const logoName = 'logo.' + overlayExt;
         addLog('Writing logo file\u2026', 'ok');
-        await ffmpeg.writeFile(logoName, await fetchFile(overlayFile));
+        await getFF().writeFile(logoName, await fetchFile(overlayFile));
         const pos   = document.getElementById('overlayPos').value;
         const pct   = parseInt(document.getElementById('overlayScale').value) || 15;
         const vidEl = document.getElementById('inputVideo');
@@ -2605,7 +2771,7 @@ async function runProcess() {
         if (!mixAudioFile) throw new Error('Please choose a music/audio file first.');
         const musicName = 'music.' + mixAudioExt;
         addLog('Writing music file\u2026', 'ok');
-        await ffmpeg.writeFile(musicName, await fetchFile(mixAudioFile));
+        await getFF().writeFile(musicName, await fetchFile(mixAudioFile));
         const origVol  = parseFloat(document.getElementById('mixOrigVol').value).toFixed(3);
         const musicVol = parseFloat(document.getElementById('mixMusicVol').value).toFixed(3);
         ext = 'mp4';
@@ -2622,7 +2788,7 @@ async function runProcess() {
         if (!concatFile) throw new Error('Please choose a second clip to append.');
         const clip2Name = 'clip2.' + concatExt;
         addLog('Writing second clip\u2026', 'ok');
-        await ffmpeg.writeFile(clip2Name, await fetchFile(concatFile));
+        await getFF().writeFile(clip2Name, await fetchFile(concatFile));
         ext = 'mp4';
         args.length = 0;
         if (hasTrim) args.push('-ss', trimS.toFixed(3), '-t', (trimE - trimS).toFixed(3));
@@ -2638,7 +2804,7 @@ async function runProcess() {
         if (!sxsFile) throw new Error('Please choose a second video file first.');
         const sxsName = 'sxs.' + sxsExt;
         addLog('Writing second video…', 'ok');
-        await ffmpeg.writeFile(sxsName, await fetchFile(sxsFile));
+        await getFF().writeFile(sxsName, await fetchFile(sxsFile));
         const sxsLayout = document.getElementById('sxsLayout').value;
         const sxsDim    = parseInt(document.getElementById('sxsDim').value) || 480;
         const sxsAudio  = document.getElementById('sxsAudio').value;
@@ -2661,7 +2827,7 @@ async function runProcess() {
         if (!pipFile) throw new Error('Please choose an overlay video file first.');
         const pipName = 'pip.' + pipExt;
         addLog('Writing overlay video…', 'ok');
-        await ffmpeg.writeFile(pipName, await fetchFile(pipFile));
+        await getFF().writeFile(pipName, await fetchFile(pipFile));
         const pipPos  = document.getElementById('pipPos').value;
         const pipPct  = parseInt(document.getElementById('pipScale').value) || 30;
         const pipVid  = document.getElementById('inputVideo');
@@ -2681,7 +2847,7 @@ async function runProcess() {
         args.length = 0;
         args.push('-hide_banner', '-i', inName);
         addLog('ffmpeg ' + args.join(' '), 'ok');
-        await ffmpeg.exec(args); // exits with code 1 \u2014 expected
+        await getFF().exec(args); // exits with code 1 \u2014 expected
         addLog('\u2500\u2500\u2500 Deep scan complete \u2014 see log above for full codec / stream details. \u2500\u2500\u2500', 'ok');
         pw.classList.add('hidden');
         return; // finally block re-enables the button
@@ -2697,7 +2863,7 @@ async function runProcess() {
         if (rawInput2File) {
           const in2Name = 'input2.' + rawInput2Ext;
           addLog('Writing second input file\u2026', 'ok');
-          await ffmpeg.writeFile(in2Name, await fetchFile(rawInput2File));
+          await getFF().writeFile(in2Name, await fetchFile(rawInput2File));
         }
         args.push(...userArgs);
         break;
@@ -2801,23 +2967,23 @@ async function runProcess() {
     args.push(outName);
 
     addLog('ffmpeg ' + args.join(' '), 'ok');
-    const exitCode = await ffmpeg.exec(args);
+    const exitCode = await getFF().exec(args);
     if (exitCode !== 0) throw new Error(`ffmpeg exited with code ${exitCode} — check your arguments and try again.`);
     addLog('Done!', 'ok');
 
-    const data = await ffmpeg.readFile(outName);
+    const data = await getFF().readFile(outName);
     await renderOutput(data, ext);
 
     // Clean up virtual FS
-    await ffmpeg.deleteFile(inName).catch(() => {});
-    await ffmpeg.deleteFile(outName).catch(() => {});
+    await getFF().deleteFile(inName).catch(() => {});
+    await getFF().deleteFile(outName).catch(() => {});
 
   } catch (err) {
     const errMsg = (err instanceof Error ? err.message : String(err)) || 'unknown error';
     addLog('Error: ' + errMsg, 'err');
     // Still try to clean up FS on error
-    try { await ffmpeg.deleteFile(inName); } catch (_) {}
-    try { await ffmpeg.deleteFile('output.' + outExt); } catch (_) {}
+    try { await getFF().deleteFile(inName); } catch (_) {}
+    try { await getFF().deleteFile('output.' + outExt); } catch (_) {}
   } finally {
     btn.disabled = false;
     btn.innerHTML = '<i class="fas fa-gear"></i> Process Video';
@@ -2931,7 +3097,7 @@ async function processBatchFile(item) {
 
   // Write input file
   addLog(`  Writing ${file.name}…`, 'log');
-  await ffmpeg.writeFile(inName, await fetchFile(file));
+  await getFF().writeFile(inName, await fetchFile(file));
 
   // Create video element to get dimensions and duration
   const vid = document.createElement('video');
@@ -2979,7 +3145,7 @@ async function processBatchFile(item) {
   // Execute ffmpeg
   addLog(`  Processing ${file.name}…`, 'log');
   try {
-    const res = await ffmpeg.exec(args);
+    const res = await getFF().exec(args);
     if (res !== 0) throw new Error(`ffmpeg exited with code ${res}`);
   } catch (err) {
     throw new Error(`FFmpeg error: ${err.message}`);
@@ -2987,12 +3153,12 @@ async function processBatchFile(item) {
 
   
   // Read output
-  const data = await ffmpeg.readFile(outName);
+  const data = await getFF().readFile(outName);
   item.output = new Blob([data.buffer], { type: 'video/' + outExt });
 
   // Cleanup input and output files from virtual filesystem
-  try { await ffmpeg.deleteFile(inName); } catch (_) {}
-  try { await ffmpeg.deleteFile(outName); } catch (_) {}
+  try { await getFF().deleteFile(inName); } catch (_) {}
+  try { await getFF().deleteFile(outName); } catch (_) {}
   
   // Update batch outputs display in Output section
   updateBatchOutputsDisplay();
@@ -3474,7 +3640,108 @@ function buildAtempo(sp) {
 }
 
 function isLoaded() {
+  if (useServerMode) return serverModeReady;
   return document.getElementById('statusDot').classList.contains('loaded');
+}
+
+// ── Engine toggle ────────────────────────────────────
+function setEngine(mode) {
+  const newServer = mode === 'server';
+  if (newServer === useServerMode) return;
+  useServerMode = newServer;
+  localStorage.setItem('ffEngine', useServerMode ? 'server' : 'browser');
+
+  document.getElementById('btnEngineBrowser').classList.toggle('active', !useServerMode);
+  document.getElementById('btnEngineServer').classList.toggle('active',  useServerMode);
+
+  const dot = document.getElementById('statusDot');
+  const txt = document.getElementById('statusText');
+  const btn = document.getElementById('loadBtn');
+
+  if (useServerMode) {
+    serverModeReady = false;
+    dot.className   = 'dot';
+    txt.textContent = 'Server mode — click to verify native ffmpeg';
+    btn.innerHTML   = '<i class="fas fa-server"></i> Check Server';
+    btn.className   = 'btn btn-primary ml-auto';
+    btn.disabled    = false;
+    addLog('Switched to server mode. Calls native ffmpeg on localhost — no WASM download.', 'ok');
+  } else {
+    serverModeReady = false;
+    if (!document.getElementById('statusDot').classList.contains('loaded')) {
+      txt.textContent = 'ffmpeg not loaded — click "Load ffmpeg" to begin';
+      btn.innerHTML   = '<i class="fas fa-play"></i> Load ffmpeg (~31 MB)';
+      btn.className   = 'btn btn-primary ml-auto';
+      btn.disabled    = false;
+    }
+    addLog('Switched to browser mode (ffmpeg.wasm).', 'ok');
+  }
+  syncProcessBtn();
+}
+
+// ── Whisper source toggle ────────────────────────────
+function setWhisperSource(source) {
+  whisperSource = source;
+  localStorage.setItem('whisperSource', source);
+  document.getElementById('btnWhisperLocal').classList.toggle('active', source === 'local');
+  document.getElementById('btnWhisperAPI').classList.toggle('active',   source === 'api');
+  document.getElementById('whisperApiKeyRow').classList.toggle('hidden', source !== 'api');
+  document.getElementById('whisperModelRow').classList.toggle('hidden',  source === 'api');
+  const hint = document.getElementById('autoCaptionModeHint');
+  if (hint) {
+    hint.innerHTML = source === 'api'
+      ? '<strong style="color:var(--text)">API mode:</strong> audio sent to OpenAI Whisper API via the local server proxy. Requires server.js running and an API key.'
+      : '<strong style="color:var(--text)">Local mode:</strong> audio extracted and transcribed on-device via Transformers.js. Zero data leaves your browser.';
+  }
+  updateAutoCaptionInfo();
+}
+
+function saveWhisperApiKey() {
+  whisperApiKey = document.getElementById('whisperApiKey').value;
+  localStorage.setItem('whisperApiKey', whisperApiKey);
+}
+
+// ── OpenAI Whisper API transcription ─────────────────
+// Converts Float32Array audio (16 kHz mono) to WAV and sends it to the
+// local server proxy (/api/transcribe) which forwards to OpenAI.
+async function transcribeViaAPI(audioSamples, apiKey) {
+  const wavBytes = float32ToWAV(audioSamples, 16000);
+  addLog('Sending audio to OpenAI Whisper API via server proxy…', 'ok');
+  const resp = await fetch('/api/transcribe', {
+    method:  'POST',
+    headers: { 'Content-Type': 'audio/wav', 'X-OpenAI-Key': apiKey },
+    body:    wavBytes,
+  });
+  if (!resp.ok) {
+    const text = await resp.text();
+    let msg = `OpenAI API error (${resp.status})`;
+    try { const j = JSON.parse(text); msg = j.error?.message || msg; } catch (_) {}
+    throw new Error(msg);
+  }
+  return await resp.text(); // SRT-formatted transcript
+}
+
+function float32ToWAV(samples, sampleRate) {
+  const buf  = new ArrayBuffer(44 + samples.length * 2);
+  const view = new DataView(buf);
+  const str  = (off, s) => { for (let i = 0; i < s.length; i++) view.setUint8(off + i, s.charCodeAt(i)); };
+  str(0,  'RIFF');
+  view.setUint32( 4, 36 + samples.length * 2, true);
+  str(8,  'WAVE'); str(12, 'fmt ');
+  view.setUint32(16, 16, true);
+  view.setUint16(20, 1,  true); // PCM
+  view.setUint16(22, 1,  true); // mono
+  view.setUint32(24, sampleRate, true);
+  view.setUint32(28, sampleRate * 2, true);
+  view.setUint16(32, 2,  true);
+  view.setUint16(34, 16, true);
+  str(36, 'data');
+  view.setUint32(40, samples.length * 2, true);
+  for (let i = 0; i < samples.length; i++) {
+    const s = Math.max(-1, Math.min(1, samples[i]));
+    view.setInt16(44 + i * 2, s < 0 ? s * 0x8000 : s * 0x7FFF, true);
+  }
+  return new Uint8Array(buf);
 }
 
 function syncProcessBtn() {
@@ -3906,26 +4173,26 @@ async function runProcessStack() {
   try {
     await requestWakeLock();
     addLog('Writing input file…', 'ok');
-    await ffmpeg.writeFile(inName, await fetchFile(inputFile));
+    await getFF().writeFile(inName, await fetchFile(inputFile));
 
     const { args, outFmt } = composeStackCommand();
     outName = 'output.' + outFmt;
 
     addLog('ffmpeg ' + args.join(' '), 'ok');
-    const exitCode = await ffmpeg.exec(args);
+    const exitCode = await getFF().exec(args);
     if (exitCode !== 0) throw new Error(`ffmpeg exited with code ${exitCode} — check the composed command.`);
     addLog('Done!', 'ok');
 
-    const data = await ffmpeg.readFile(outName);
+    const data = await getFF().readFile(outName);
     await renderOutput(data, outFmt);
 
-    await ffmpeg.deleteFile(inName).catch(() => {});
-    await ffmpeg.deleteFile(outName).catch(() => {});
+    await getFF().deleteFile(inName).catch(() => {});
+    await getFF().deleteFile(outName).catch(() => {});
   } catch (err) {
     const errMsg = (err instanceof Error ? err.message : String(err)) || 'unknown error';
     addLog('Error: ' + errMsg, 'err');
-    try { await ffmpeg.deleteFile(inName); } catch (_) {}
-    try { if (outName) await ffmpeg.deleteFile(outName); } catch (_) {}
+    try { await getFF().deleteFile(inName); } catch (_) {}
+    try { if (outName) await getFF().deleteFile(outName); } catch (_) {}
   } finally {
     setTimeout(() => {
       pw.classList.add('hidden');
@@ -4043,7 +4310,7 @@ async function processBatchStackFile(item) {
   item.outputName = baseName + '_processed.' + outExt;
 
   addLog(`  Writing ${file.name}…`, 'log');
-  await ffmpeg.writeFile(inName, await fetchFile(file));
+  await getFF().writeFile(inName, await fetchFile(file));
 
   // Get this file's dimensions/duration so crop/pad/fade compose correctly.
   const vid = document.createElement('video');
@@ -4053,14 +4320,14 @@ async function processBatchStackFile(item) {
   const { args } = composeStackArgsFor(inName, outName, vid.videoWidth, vid.videoHeight, vid.duration);
 
   addLog('  ffmpeg ' + args.join(' '), 'log');
-  const res = await ffmpeg.exec(args);
+  const res = await getFF().exec(args);
   if (res !== 0) throw new Error(`ffmpeg exited with code ${res}`);
 
-  const data = await ffmpeg.readFile(outName);
+  const data = await getFF().readFile(outName);
   item.output = new Blob([data.buffer], { type: mime(outExt) });
 
-  try { await ffmpeg.deleteFile(inName); } catch (_) {}
-  try { await ffmpeg.deleteFile(outName); } catch (_) {}
+  try { await getFF().deleteFile(inName); } catch (_) {}
+  try { await getFF().deleteFile(outName); } catch (_) {}
 
   updateBatchOutputsDisplay();
 }
@@ -4162,14 +4429,14 @@ async function extractAudioAsWAV() {
     // Extract audio as 16-bit PCM WAV at 16 kHz (Whisper's required format)
     // Explicitly specify output format and use -y to overwrite
     const args = ['-i', inName, '-acodec', 'pcm_s16le', '-ar', '16000', '-ac', '1', '-f', 'wav', '-y', 'audio.wav'];
-    const exitCode = await ffmpeg.exec(args);
+    const exitCode = await getFF().exec(args);
     
     if (exitCode !== 0) {
       throw new Error(`ffmpeg audio extraction failed with exit code ${exitCode}`);
     }
     
     addLog('Reading audio data...', 'ok');
-    const wavData = await ffmpeg.readFile('audio.wav');
+    const wavData = await getFF().readFile('audio.wav');
     if (!wavData || wavData.length === 0) {
       throw new Error('Audio file is empty or could not be read');
     }
@@ -4193,7 +4460,7 @@ async function extractAudioAsWAV() {
     
     // ── MEMORY MANAGEMENT: Clean up extracted WAV from ffmpeg filesystem ──
     try {
-      await ffmpeg.deleteFile('audio.wav');
+      await getFF().deleteFile('audio.wav');
     } catch (e) {
       addLog(`Warning: Could not delete audio.wav: ${e.message || String(e)}`, 'log');
     }
@@ -4354,7 +4621,7 @@ async function buildCaptionBurnArgs(cues, inName, fontSizeChoice) {
     const bin = atob(b64);
     const bytes = new Uint8Array(bin.length);
     for (let k = 0; k < bin.length; k++) bytes[k] = bin.charCodeAt(k);
-    await ffmpeg.writeFile(`caption_${i}.png`, bytes);
+    await getFF().writeFile(`caption_${i}.png`, bytes);
   }
 
   // Chain one timed overlay per cue: centered horizontally, near the bottom.
@@ -4440,58 +4707,39 @@ async function confirmAutoCaptionTranscript() {
     // Save SRT content before cleanup
     const srtContent = autoCaptionSRT;
     
-    // ── MEMORY OPTIMIZATION: Ensure ffmpeg.wasm is loaded before embedding ──
-    // Ffmpeg should be preloading while user reviews transcript, but double-check it's ready
-    addLog('Verifying ffmpeg.wasm is loaded and ready…', 'ok');
-    let retries = 0;
-    const maxRetries = 30; // 30 retries x 200ms = 6 seconds max wait
-    while ((!isLoaded() || !ffmpeg) && retries < maxRetries) {
-      await new Promise(r => setTimeout(r, 200));
-      retries++;
-    }
-    
-    // If preemptive load didn't complete, actively load now
-    if (!isLoaded() || !ffmpeg) {
-      addLog('Preemptive load incomplete - loading ffmpeg now…', 'ok');
-      try {
-        await loadFFmpeg();
-        // Give ffmpeg a moment to fully initialize
-        await new Promise(r => setTimeout(r, 1000));
-      } catch (e) {
-        console.error('Error loading ffmpeg:', e);
-        throw new Error('Failed to load ffmpeg.wasm: ' + (e.message || String(e)));
+    if (!useServerMode) {
+      // WASM mode: ensure ffmpeg.wasm is reloaded after transcription terminated it
+      addLog('Verifying ffmpeg.wasm is loaded and ready…', 'ok');
+      let retries = 0;
+      while (!isLoaded() && retries < 30) {
+        await new Promise(r => setTimeout(r, 200));
+        retries++;
       }
-    }
-    
-    // Final check - verify both UI state and object exist
-    if (!isLoaded() || !ffmpeg || typeof ffmpeg.writeFile !== 'function') {
-      console.error('FFmpeg check failed:', {
-        isLoaded: isLoaded(),
-        ffmpegExists: !!ffmpeg,
-        hasWriteFile: ffmpeg && typeof ffmpeg.writeFile === 'function'
-      });
-      throw new Error('FFmpeg failed to initialize properly. Please try again or reload the page.');
-    }
-    
-    // Aggressive last-resort: directly call ffmpeg.load() with full configuration
-    if (ffmpeg && typeof ffmpeg.load === 'function') {
-      try {
-        addLog('Ensuring ffmpeg is fully initialized…', 'ok');
-        const esmBase  = 'https://cdn.jsdelivr.net/npm/@ffmpeg/ffmpeg@0.12.15/dist/esm/';
-        const coreBase = 'https://cdn.jsdelivr.net/npm/@ffmpeg/core@0.12.10/dist/esm';
-        const classWorkerURL = new URL('./worker.js', location.href).href;
-        const coreURL = `${coreBase}/ffmpeg-core.js`;
-        const wasmURL = `${coreBase}/ffmpeg-core.wasm`;
-        await ffmpeg.load({ classWorkerURL, coreURL, wasmURL });
-      } catch (e) {
-        // It's okay if load fails (likely already loaded) - proceed and try to use it
-        console.warn('ffmpeg.load() call in embed:', e.message);
+      if (!isLoaded()) {
+        try {
+          await loadFFmpeg();
+          await new Promise(r => setTimeout(r, 1000));
+        } catch (e) {
+          throw new Error('Failed to load ffmpeg.wasm: ' + (e.message || String(e)));
+        }
+      }
+      if (!isLoaded() || !ffmpeg || typeof ffmpeg.writeFile !== 'function') {
+        throw new Error('FFmpeg failed to initialize properly. Please try again or reload the page.');
+      }
+      if (ffmpeg && typeof ffmpeg.load === 'function') {
+        try {
+          const coreBase = 'https://cdn.jsdelivr.net/npm/@ffmpeg/core@0.12.10/dist/esm';
+          const classWorkerURL = new URL('./worker.js', location.href).href;
+          await ffmpeg.load({ classWorkerURL, coreURL: `${coreBase}/ffmpeg-core.js`, wasmURL: `${coreBase}/ffmpeg-core.wasm` });
+        } catch (e) {
+          console.warn('ffmpeg.load() in embed:', e.message);
+        }
       }
     }
     
     addLog('Writing SRT subtitle file…', 'ok');
     try {
-      await ffmpeg.writeFile('autogen.srt', new TextEncoder().encode(srtContent));
+      await getFF().writeFile('autogen.srt', new TextEncoder().encode(srtContent));
     } catch (e) {
       console.error('Error writing SRT file:', e);
       throw new Error('Failed to write subtitle file: ' + (e.message || String(e)));
@@ -4506,21 +4754,17 @@ async function confirmAutoCaptionTranscript() {
       if (!inputFile) {
         throw new Error('Input file not available - original file lost');
       }
-      await ffmpeg.writeFile(inName, await fetchFile(inputFile));
+      await getFF().writeFile(inName, await fetchFile(inputFile));
       addLog('Input file restored successfully', 'ok');
     } catch (e) {
       console.error('Error restoring input file:', e);
       throw new Error('Failed to restore input file to ffmpeg: ' + (e.message || String(e)));
     }
     
-    // ── MEMORY MANAGEMENT: Clean up Transcriber & model weights before re-engaging ffmpeg ──
-    // This is CRITICAL to avoid OOM when both ffmpeg and whisper are resident.
-    addLog('Releasing transcription engine from memory…', 'ok');
-    if (autoCaptionTranscriber && typeof autoCaptionTranscriber.dispose === 'function') {
-      try {
-        await autoCaptionTranscriber.dispose();
-      } catch (e) {
-        // Ignore if disposal fails
+    if (whisperSource === 'local') {
+      // Clean up Whisper model weights before re-engaging ffmpeg (OOM prevention)
+      if (autoCaptionTranscriber && typeof autoCaptionTranscriber.dispose === 'function') {
+        try { await autoCaptionTranscriber.dispose(); } catch (_) {}
       }
     }
     autoCaptionTranscriber = null;
@@ -4534,6 +4778,22 @@ async function confirmAutoCaptionTranscript() {
     
     // Use user-selected format with appropriate subtitle codec
     const fmt = (document.getElementById('autoCaptionFmt').value || 'mp4').trim().toLowerCase();
+
+    // SRT-only output: skip ffmpeg, just download the SRT file
+    if (fmt === 'srt') {
+      const blob = new Blob([srtContent], { type: 'text/plain' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = (inputFile ? inputFile.name.replace(/\.[^.]+$/, '') : 'captions') + '.srt';
+      document.body.appendChild(a); a.click(); document.body.removeChild(a);
+      addLog('SRT file downloaded.', 'ok');
+      document.getElementById('autoCaptionTranscriptPanel').classList.add('hidden');
+      document.getElementById('processBtn').disabled = false;
+      confirmBtn.disabled = false;
+      confirmBtn.innerHTML = '<i class="fas fa-check"></i> Confirm & Embed';
+      return;
+    }
+
     if (!fmt || (fmt !== 'mp4' && fmt !== 'mkv')) {
       throw new Error(`Invalid format: ${fmt}`);
     }
@@ -4548,18 +4808,23 @@ async function confirmAutoCaptionTranscript() {
     const args = [];
     
     if (burnSubtitles) {
-      // ── HARD-BURN ──
-      // libass has no fonts in the wasm core build, so render captions with the
-      // browser canvas and overlay them (centered, bottom-anchored, word-wrapped).
-      addLog('Rendering caption overlays…', 'ok');
-      document.getElementById('progWrap').classList.remove('hidden');
-      document.getElementById('progLabel').textContent = 'Encoding with subtitles…';
-
-      const cues = parseSubtitleCues(srtContent);
-      if (!cues.length) throw new Error('No caption cues found to burn.');
-      const fontSizeChoice = (document.getElementById('autoCaptionFontSize') || {}).value || 'medium';
-      const burnArgs = await buildCaptionBurnArgs(cues, inName, fontSizeChoice);
-      args.push(...burnArgs, outName);
+      if (useServerMode) {
+        // Server mode: native libass handles subtitle rendering
+        addLog('Burning subtitles with native libass…', 'ok');
+        args.push('-i', inName);
+        args.push('-vf', "subtitles=autogen.srt:force_style='FontSize=22'");
+        args.push('-c:a', 'copy', outName);
+      } else {
+        // Browser WASM mode: no fonts in core build — canvas overlay approach
+        addLog('Rendering caption overlays…', 'ok');
+        document.getElementById('progWrap').classList.remove('hidden');
+        document.getElementById('progLabel').textContent = 'Encoding with subtitles…';
+        const cues = parseSubtitleCues(srtContent);
+        if (!cues.length) throw new Error('No caption cues found to burn.');
+        const fontSizeChoice = (document.getElementById('autoCaptionFontSize') || {}).value || 'medium';
+        const burnArgs = await buildCaptionBurnArgs(cues, inName, fontSizeChoice);
+        args.push(...burnArgs, outName);
+      }
     } else {
       // ── SOFT EMBED: Embed as subtitle stream (stream copy video/audio) ──
       addLog('Using soft subtitle stream embedding…', 'ok');
@@ -4571,22 +4836,22 @@ async function confirmAutoCaptionTranscript() {
     
     addLog(`ffmpeg ${args.join(' ')}`, 'ok');
     
-    const exitCode = await ffmpeg.exec(args);
+    const exitCode = await getFF().exec(args);
     
     if (exitCode !== 0) throw new Error(`ffmpeg subtitle embedding failed with code ${exitCode}. Check FFmpeg log above for details.`);
     
     addLog('Done!', 'ok');
     
     // Read and display output
-    const data = await ffmpeg.readFile(outName);
+    const data = await getFF().readFile(outName);
     await renderOutput(data, fmt);
     
     // Cleanup
-    await ffmpeg.deleteFile(outName).catch(() => {});
-    await ffmpeg.deleteFile('autogen.srt').catch(() => {});
+    await getFF().deleteFile(outName).catch(() => {});
+    await getFF().deleteFile('autogen.srt').catch(() => {});
     if (burnSubtitles) {
       for (let i = 0; i < 100000; i++) {
-        try { await ffmpeg.deleteFile(`caption_${i}.png`); }
+        try { await getFF().deleteFile(`caption_${i}.png`); }
         catch { break; }
       }
     }
