@@ -438,7 +438,10 @@
             <div class="form-group" style="margin-bottom:10px">
               <label class="lbl">Custom caption font <span style="font-weight:400;color:var(--muted)">(hard-burn only — .ttf, .otf, .woff, .woff2)</span></label>
               <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
-                <button class="btn btn-ghost btn-sm" type="button" onclick="document.getElementById('subsFontInput').click()"><i class="fas fa-font"></i> Choose font</button>
+                <select class="caption-font-select" id="subsFontSelect" onchange="onCaptionFontSelect(this)" style="max-width:200px">
+                  <option value="">Default (Arial)</option>
+                </select>
+                <button class="btn btn-ghost btn-sm" type="button" onclick="document.getElementById('subsFontInput').click()"><i class="fas fa-font"></i> Upload font</button>
                 <span class="caption-font-name" id="subsFontName" style="font-size:0.78rem;color:var(--muted)">Default (Arial)</span>
                 <button class="btn btn-ghost btn-sm hidden caption-font-clear-btn" id="subsFontClearBtn" type="button" onclick="clearCaptionFont()"><i class="fas fa-xmark"></i> Reset</button>
                 <input type="file" id="subsFontInput" style="display:none" accept=".ttf,.otf,.woff,.woff2,font/ttf,font/otf,font/woff,font/woff2" onchange="onCaptionFontChange(this)">
@@ -515,7 +518,10 @@
               <div class="form-group" style="margin:10px 0 0 24px">
                 <label class="lbl">Custom caption font <span style="font-weight:400;color:var(--muted)">(hard-burn only — .ttf, .otf, .woff, .woff2)</span></label>
                 <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
-                  <button class="btn btn-ghost btn-sm" type="button" onclick="document.getElementById('autoCaptionFontInput').click()"><i class="fas fa-font"></i> Choose font</button>
+                  <select class="caption-font-select" id="autoCaptionFontSelect" onchange="onCaptionFontSelect(this)" style="max-width:200px">
+                    <option value="">Default (Arial)</option>
+                  </select>
+                  <button class="btn btn-ghost btn-sm" type="button" onclick="document.getElementById('autoCaptionFontInput').click()"><i class="fas fa-font"></i> Upload font</button>
                   <span class="caption-font-name" id="autoCaptionFontName" style="font-size:0.78rem;color:var(--muted)">Default (Arial)</span>
                   <button class="btn btn-ghost btn-sm hidden caption-font-clear-btn" id="autoCaptionFontClearBtn" type="button" onclick="clearCaptionFont()"><i class="fas fa-xmark"></i> Reset</button>
                   <input type="file" id="autoCaptionFontInput" style="display:none" accept=".ttf,.otf,.woff,.woff2,font/ttf,font/otf,font/woff,font/woff2" onchange="onCaptionFontChange(this)">

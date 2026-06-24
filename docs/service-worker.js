@@ -13,9 +13,9 @@
  * fully offline after first visit.
  */
 
-const CACHE_NAME = 'ffmpeg-editor-v5';
-const RUNTIME_CACHE = 'ffmpeg-editor-runtime-v5';
-const CDN_CACHE = 'ffmpeg-editor-cdn-v5';
+const CACHE_NAME = 'ffmpeg-editor-v6';
+const RUNTIME_CACHE = 'ffmpeg-editor-runtime-v6';
+const CDN_CACHE = 'ffmpeg-editor-cdn-v6';
 
 const STATIC_ASSETS = [
   '/',
@@ -44,6 +44,10 @@ const STATIC_ASSETS = [
   '/transcriber.js',
   '/three-bvh-csg-shim.js',
   '/manifest.json',
+  // Bundled caption fonts (prebuilt list)
+  '/fonts/fonts.json',
+  '/fonts/Al-Jazeera-Regular.woff2',
+  '/fonts/thmanyah-serif-display-Regular.woff2',
 ];
 
 const CDN_RESOURCES = [
