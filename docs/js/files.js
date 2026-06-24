@@ -46,6 +46,11 @@ export async function handleFile(file) {
   state.input.file = file;
   state.input.ext  = file.name.split('.').pop().toLowerCase() || 'mp4';
 
+  // A new input invalidates any prior auto-caption transcript; otherwise
+  // process.js would reuse the previous video's captions for this one.
+  state.whisper.srt = '';
+  state.whisper.segments = null;
+
   // Hide quick download when loading a new file (old output is no longer relevant)
   document.getElementById('quickDownloadWrap').classList.add('hidden');
 
@@ -91,6 +96,8 @@ import { fmtTime as require_fmtTime } from './helpers.js';
 export function clearInput() {
   if (state.batch.mode) return;  // Don't clear in batch mode
   state.input.file = null;
+  state.whisper.srt = '';
+  state.whisper.segments = null;
   document.getElementById('inputVideo').src = '';
   document.getElementById('inputWrap').classList.add('hidden');
   document.getElementById('dropZone').classList.remove('hidden');
