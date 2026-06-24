@@ -23,6 +23,7 @@ export const state = {
     current: 'convert',
     outBlob: null,
     outExt:  'mp4',
+    outName: null,   // suggested download filename; null → default 'output.ext'
     // When the user picks the "gif" op-tile we lock the output-format
     // dropdown to gif. Store the previous selection here so we can restore
     // it when they switch away from gif.

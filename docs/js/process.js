@@ -746,6 +746,6 @@ export async function download() {
   // Local import to avoid a circular dep at module-eval time.
   const { blobToDataURL } = await import('./helpers.js');
   a.href = await blobToDataURL(state.op.outBlob);
-  a.download = 'output.' + state.op.outExt;
+  a.download = state.op.outName || 'output.' + state.op.outExt;
   a.click();
 }

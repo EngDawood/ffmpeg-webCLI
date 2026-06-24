@@ -202,8 +202,9 @@ export function updateSizeEstimate() {
 // ── Shared output renderer ─────────────────────────────────────────────
 // Used by both the single-op runProcess() and the stack runProcessStack()
 // so result-display logic lives in exactly one place.
-export async function renderOutput(data, ext) {
+export async function renderOutput(data, ext, suggestedName) {
   state.op.outExt  = ext;
+  state.op.outName = suggestedName || null;
   state.op.outBlob = new Blob([data.buffer], { type: mime(ext) });
   // Use a data: URL — no blob: URL means no range-request failures.
   const url = await blobToDataURL(state.op.outBlob);
@@ -232,9 +233,10 @@ export async function renderOutput(data, ext) {
   const metaText = `${fmtBytes(data.buffer.byteLength)} · ${ext.toUpperCase()}`;
   document.getElementById('outMeta').textContent = metaText;
   document.getElementById('quickOutMeta').textContent = metaText;
-  document.getElementById('dlBtn').innerHTML = `<i class="fas fa-download"></i> Download output.${ext}`;
+  const dlLabel = suggestedName || `output.${ext}`;
+  document.getElementById('dlBtn').innerHTML = `<i class="fas fa-download"></i> Download ${dlLabel}`;
   document.getElementById('dlBtn').onclick = download;
-  document.getElementById('quickDlBtn').innerHTML = `<i class="fas fa-download"></i> Download output.${ext}`;
+  document.getElementById('quickDlBtn').innerHTML = `<i class="fas fa-download"></i> Download ${dlLabel}`;
   // Hide batch outputs section in single mode output
   const bw = document.getElementById('batchOutputsWrap');
   if (bw) bw.classList.add('hidden');

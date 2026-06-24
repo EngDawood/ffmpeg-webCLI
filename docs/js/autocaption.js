@@ -234,7 +234,10 @@ export async function confirmAutoCaptionTranscript() {
 
     const burnCheckbox = document.getElementById('autoCaptionBurn');
     const burnSubtitles = burnCheckbox ? burnCheckbox.checked : false;
-    const outName = 'output.' + fmt;
+    const inputBase = state.input.file
+      ? state.input.file.name.replace(/\.[^.]+$/, '').replace(/[^a-zA-Z0-9 _\-]/g, '_')
+      : 'output';
+    const outName = inputBase + '_captioned.' + fmt;
 
     addLog(`DEBUG: Format=${fmt}, Burn=${burnSubtitles}, SRT length=${srtContent ? srtContent.length : 0}`, 'ok');
 
@@ -278,7 +281,7 @@ export async function confirmAutoCaptionTranscript() {
 
     // Read and display output
     const data = await getFF().readFile(outName);
-    await renderOutput(data, fmt);
+    await renderOutput(data, fmt, outName);
 
     // Cleanup
     await getFF().deleteFile(outName).catch(() => {});
