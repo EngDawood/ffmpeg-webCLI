@@ -12,6 +12,14 @@ import { getFF } from './engine.js';
 import { addLog } from './ui.js';
 import { getCaptionFontFamily, hasCustomFont } from './fonts.js';
 
+// Characters from right-to-left scripts (Hebrew, Arabic, Syriac, Thaana,
+// Arabic Supplement/Extended, plus Arabic presentation forms A/B). Used to
+// flip the canvas bidi direction so captions render with correct
+// punctuation, parenthesis and Latin-digit placement. Letter shaping/joining
+// itself is handled natively by the browser text engine.
+const RTL_RE = /[֐-׿؀-ۿ܀-ݏݐ-ݿࢠ-ࣿיִ-﷿ﹰ-﻿]/;
+function isRTL(s) { return RTL_RE.test(s || ''); }
+
 /**
  * Parse a "HH:MM:SS,mmm" / "MM:SS.mmm" timecode to seconds. Returns null
  * if it doesn't look like a timecode.
@@ -77,17 +85,25 @@ export function parseSubtitleCues(content) {
 /**
  * Render caption cues to per-cue PNG overlays with the browser canvas
  * and build the ffmpeg args (minus the output name) that burn them into
- * the video. Each caption is a fitted, rounded, translucent box with
- * white outlined text, centered horizontally and anchored near the
- * bottom. Timing comes straight from the cue start/end via the overlay
- * `enable` expression, so it stays in sync.
+ * the video. Captions are centered horizontally and anchored near the
+ * bottom; timing comes straight from the cue start/end via the overlay
+ * `enable` expression, so it stays in sync. The visual look is chosen via
+ * `styleChoice`:
+ *   - 'pill'    — each wrapped line gets its own tight, fully-rounded
+ *                 translucent background (social-caption style). [default]
+ *   - 'box'     — all lines share one rounded translucent box (classic).
+ *   - 'outline' — no background; bold white text with a heavy outline and
+ *                 a soft drop shadow (cinematic).
+ * Right-to-left text (Arabic, Hebrew, …) is detected per cue and the canvas
+ * bidi direction is flipped so punctuation and digits land correctly.
  *
  * @param {Array<{startSec:number,endSec:number,text:string}>} cues
  * @param {string} inName  ffmpeg virtual-FS name of the input video
  * @param {'small'|'medium'|'large'} fontSizeChoice
+ * @param {'pill'|'box'|'outline'} [styleChoice='pill']
  * @returns {Promise<string[]>} ffmpeg args (without the output filename)
  */
-export async function buildCaptionBurnArgs(cues, inName, fontSizeChoice) {
+export async function buildCaptionBurnArgs(cues, inName, fontSizeChoice, styleChoice = 'pill') {
   const { w: vidW, h: vidH } = getVideoSize();
   const canvasW = vidW || 1920;
   const canvasH = vidH || 1080;
