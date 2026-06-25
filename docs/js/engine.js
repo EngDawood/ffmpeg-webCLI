@@ -25,7 +25,7 @@ export { fetchFile };
 // deployed frontend can use them. It ships in client JS (lightly obscured) — it
 // deters casual endpoint abuse, not a determined attacker. Leave '' if you
 // don't expose shared backends.
-const APP_TRANSCRIBE_TOKEN = '';
+const APP_TRANSCRIBE_TOKEN = 'dawood';
 
 // ── Server base-URL resolution ──────────────────────────────────────────
 // All /api/* calls go through `_api()`, which prefixes the resolved base.
