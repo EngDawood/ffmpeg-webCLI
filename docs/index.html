@@ -515,39 +515,66 @@
                 <label class="lbl">Transcription Source</label>
                 <div class="mode-toggle" id="whisperSrcToggle">
                   <button class="mode-btn active" id="btnWhisperLocal" onclick="setWhisperSource('local')"><i class="fas fa-microchip"></i> Local</button>
-                  <button class="mode-btn" id="btnWhisperAPI" onclick="setWhisperSource('api')"><i class="fas fa-cloud"></i> OpenAI API</button>
+                  <button class="mode-btn" id="btnWhisperAPI" onclick="setWhisperSource('api')"><i class="fas fa-cloud"></i> API</button>
                 </div>
               </div>
             </div>
             <div id="whisperApiConfigRow" class="hidden" style="margin-bottom:10px">
-              <div class="form-row" style="margin-bottom:6px">
+              <!-- API backend selector (server default + UI override). Hidden
+                   unless the deployment offers more than the user's own key. -->
+              <div class="form-row hidden" id="whisperBackendRow" style="margin-bottom:6px">
                 <div class="form-group" style="flex:1 1 100%">
-                  <label class="lbl">API Token / Key</label>
-                  <input type="password" id="whisperApiKey" placeholder="sk-..." oninput="saveWhisperConfig()" style="width:100%">
-                </div>
-              </div>
-              <div class="form-row" style="margin-bottom:6px">
-                <div class="form-group" style="flex:1 1 100%">
-                  <label class="lbl">Provider</label>
-                  <select id="whisperProvider" onchange="applyWhisperProvider(this.value)" style="width:100%">
-                    <option value="openai">OpenAI (whisper-1)</option>
-                    <option value="groq">Groq (whisper-large-v3-turbo)</option>
-                    <option value="mistral">Mistral (voxtral-mini-latest)</option>
-                    <option value="custom">Custom…</option>
+                  <label class="lbl">API Backend</label>
+                  <select id="whisperBackend" onchange="setWhisperBackend(this.value)" style="width:100%">
+                    <option value="user">My own key</option>
+                    <option value="app" hidden>App (shared key)</option>
+                    <option value="workers-ai" hidden>Cloudflare Workers AI</option>
                   </select>
                 </div>
               </div>
-              <div class="form-row" style="margin-bottom:6px">
-                <div class="form-group">
-                  <label class="lbl">Base URL</label>
-                  <input type="text" id="whisperBaseUrl" placeholder="https://api.openai.com/v1" oninput="saveWhisperConfig()" style="width:100%">
+
+              <!-- User-supplied key fields -->
+              <div id="whisperUserFields">
+                <div class="form-row" style="margin-bottom:6px">
+                  <div class="form-group" style="flex:1 1 100%">
+                    <label class="lbl">API Token / Key</label>
+                    <input type="password" id="whisperApiKey" placeholder="sk-..." oninput="saveWhisperConfig()" style="width:100%">
+                  </div>
                 </div>
-                <div class="form-group">
-                  <label class="lbl">Model ID</label>
-                  <input type="text" id="whisperModelId" placeholder="whisper-1" oninput="saveWhisperConfig()" style="width:100%">
+                <div class="form-row" style="margin-bottom:6px">
+                  <div class="form-group" style="flex:1 1 100%">
+                    <label class="lbl">Provider</label>
+                    <select id="whisperProvider" onchange="applyWhisperProvider(this.value)" style="width:100%">
+                      <option value="openai">OpenAI (whisper-1)</option>
+                      <option value="groq">Groq (whisper-large-v3-turbo)</option>
+                      <option value="mistral">Mistral (voxtral-mini-latest)</option>
+                      <option value="custom">Custom…</option>
+                    </select>
+                  </div>
+                </div>
+                <div class="form-row" style="margin-bottom:6px">
+                  <div class="form-group">
+                    <label class="lbl">Base URL</label>
+                    <input type="text" id="whisperBaseUrl" placeholder="https://api.openai.com/v1" oninput="saveWhisperConfig()" style="width:100%">
+                  </div>
+                  <div class="form-group">
+                    <label class="lbl">Model ID</label>
+                    <input type="text" id="whisperModelId" placeholder="whisper-1" oninput="saveWhisperConfig()" style="width:100%">
+                  </div>
                 </div>
               </div>
-              <p class="hint" style="margin-top:4px">Pick a provider preset (OpenAI, Groq, Mistral) or choose Custom for any OpenAI-compatible endpoint. All fields saved locally in your browser. Requests are proxied through <code>server.js</code> — the token never reaches ffmpeg-webCLI's frontend host directly.</p>
+
+              <!-- Shared "app" key fields (provider preset only — key is server-side) -->
+              <div id="whisperAppFields" class="hidden">
+                <div class="form-row" style="margin-bottom:6px">
+                  <div class="form-group" style="flex:1 1 100%">
+                    <label class="lbl">Shared Provider</label>
+                    <select id="whisperAppProvider" onchange="setWhisperAppProvider(this.value)" style="width:100%"></select>
+                  </div>
+                </div>
+              </div>
+
+              <p class="hint" id="whisperBackendHint" style="margin-top:4px">Pick a provider preset (OpenAI, Groq, Mistral) or choose Custom for any OpenAI-compatible endpoint. All fields saved locally in your browser. Requests are proxied through the server — the token never reaches ffmpeg-webCLI's frontend host directly.</p>
             </div>
             <div class="form-row" id="whisperModelRow">
               <div class="form-group">

@@ -48,6 +48,12 @@ export const state = {
   // ── Whisper / Auto-Caption ─────────────────────────────────────────
   whisper: {
     source:  localStorage.getItem('whisperSource') || 'local',  // 'local' | 'api'
+    // Which API backend handles transcription when source === 'api'. null means
+    // "follow the server default" from /api/transcribe-config; once the user
+    // picks one in the UI it persists here. 'user' | 'app' | 'workers-ai'.
+    apiBackend:  localStorage.getItem('whisperApiBackend') || null,
+    // Provider preset used by the shared 'app' backend (server-side key).
+    appProvider: localStorage.getItem('whisperAppProvider') || 'mistral',
     apiKey:  localStorage.getItem('whisperApiKey')  || '',
     // OpenAI-compatible endpoint config — supports OpenAI, Azure OpenAI,
     // Groq, local LLM servers (e.g. llama.cpp / vLLM with /v1 prefix), etc.

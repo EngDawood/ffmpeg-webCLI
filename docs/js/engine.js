@@ -19,6 +19,14 @@ import { addLog, syncProcessBtn } from './ui.js';
 // each pulling the CDN URL themselves.
 export { fetchFile };
 
+// ── Shared-backend app token ────────────────────────────────────────────
+// Gate for the server-side "app" key and "Workers AI" transcription backends.
+// Set this to match the APP_TOKEN secret on your Cloudflare Worker so your own
+// deployed frontend can use them. It ships in client JS (lightly obscured) — it
+// deters casual endpoint abuse, not a determined attacker. Leave '' if you
+// don't expose shared backends.
+const APP_TRANSCRIBE_TOKEN = '';
+
 // ── Server base-URL resolution ──────────────────────────────────────────
 // All /api/* calls go through `_api()`, which prefixes the resolved base.
 // '' means same origin (the page is served by server.js directly); a value
@@ -346,7 +354,7 @@ export function setWhisperSource(source) {
   const hint = document.getElementById('autoCaptionModeHint');
   if (hint) {
     hint.innerHTML = source === 'api'
-      ? '<strong style="color:var(--text)">API mode:</strong> audio sent to the configured OpenAI-compatible endpoint via the local server proxy. Requires server.js running and an API token.'
+      ? '<strong style="color:var(--text)">API mode:</strong> audio is extracted in your browser and sent to the selected transcription backend via the server proxy.'
       : '<strong style="color:var(--text)">Local mode:</strong> audio extracted and transcribed on-device via Transformers.js. Zero data leaves your browser.';
   }
   updateAutoCaptionInfo();
@@ -380,6 +388,120 @@ export function applyWhisperProvider(id) {
   document.getElementById('whisperBaseUrl').value = p.baseUrl;
   document.getElementById('whisperModelId').value = p.model;
   saveWhisperConfig();
+}
+
+// ── Transcription backend switching (server default + UI override) ─────
+// The deployed Worker advertises which backends it offers and a default via
+// GET /api/transcribe-config. The frontend follows that default unless the
+// user explicitly picks a backend (persisted in state.whisper.apiBackend).
+let transcribeConfig = { defaultBackend: 'user', appProviders: [], workersAi: false, tokenRequired: false };
+
+/** Fetch the backend config from the active server; falls back to user-only. */
+export async function fetchTranscribeConfig() {
+  try {
+    const resp = await fetch(_api('/api/transcribe-config'), { method: 'GET' });
+    if (resp.ok) {
+      const cfg = await resp.json();
+      transcribeConfig = {
+        defaultBackend: (cfg.defaultBackend || 'user'),
+        appProviders:   Array.isArray(cfg.appProviders) ? cfg.appProviders : [],
+        workersAi:      !!cfg.workersAi,
+        tokenRequired:  !!cfg.tokenRequired,
+      };
+    } else {
+      transcribeConfig = { defaultBackend: 'user', appProviders: [], workersAi: false, tokenRequired: false };
+    }
+  } catch (_) {
+    transcribeConfig = { defaultBackend: 'user', appProviders: [], workersAi: false, tokenRequired: false };
+  }
+  applyTranscribeConfigToUI();
+}
+
+/** List of backends this deployment actually offers, 'user' always first. */
+function availableBackends() {
+  return ['user',
+    ...(transcribeConfig.appProviders.length ? ['app'] : []),
+    ...(transcribeConfig.workersAi ? ['workers-ai'] : [])];
+}
+
+/** Resolve the backend in effect: stored override if valid, else server default. */
+export function getActiveBackend() {
+  const avail = availableBackends();
+  const stored = state.whisper.apiBackend;
+  if (stored && avail.includes(stored)) return stored;
+  return avail.includes(transcribeConfig.defaultBackend) ? transcribeConfig.defaultBackend : 'user';
+}
+
+/** Populate the backend dropdown / app-provider list and apply visibility. */
+function applyTranscribeConfigToUI() {
+  const avail = availableBackends();
+
+  // Show only the backend options this deployment supports.
+  const sel = document.getElementById('whisperBackend');
+  if (sel) {
+    for (const opt of sel.options) {
+      opt.hidden = !avail.includes(opt.value);
+    }
+    // Hide the whole selector if 'user' is the only option (nothing to switch).
+    const row = document.getElementById('whisperBackendRow');
+    if (row) row.classList.toggle('hidden', avail.length <= 1);
+  }
+
+  // Fill the shared-provider dropdown from the configured app providers.
+  const ap = document.getElementById('whisperAppProvider');
+  if (ap) {
+    ap.innerHTML = '';
+    for (const id of transcribeConfig.appProviders) {
+      const o = document.createElement('option');
+      o.value = id;
+      o.textContent = (WHISPER_PROVIDERS[id]?.name || id) + (WHISPER_PROVIDERS[id] ? ` (${WHISPER_PROVIDERS[id].model})` : '');
+      ap.appendChild(o);
+    }
+    if (transcribeConfig.appProviders.includes(state.whisper.appProvider)) {
+      ap.value = state.whisper.appProvider;
+    } else if (transcribeConfig.appProviders.length) {
+      ap.value = transcribeConfig.appProviders[0];
+      state.whisper.appProvider = ap.value;
+    }
+  }
+
+  updateWhisperBackendUI();
+}
+
+/** Toggle which API-config fields show for the active backend + update hint. */
+function updateWhisperBackendUI() {
+  const backend = getActiveBackend();
+  const sel = document.getElementById('whisperBackend');
+  if (sel && sel.value !== backend) sel.value = backend;
+
+  const userFields = document.getElementById('whisperUserFields');
+  const appFields  = document.getElementById('whisperAppFields');
+  if (userFields) userFields.classList.toggle('hidden', backend !== 'user');
+  if (appFields)  appFields.classList.toggle('hidden',  backend !== 'app');
+
+  const hint = document.getElementById('whisperBackendHint');
+  if (hint) {
+    if (backend === 'app') {
+      hint.innerHTML = '<strong style="color:var(--text)">App (shared key):</strong> audio is transcribed using this site’s server-side API key — no token needed from you.';
+    } else if (backend === 'workers-ai') {
+      hint.innerHTML = '<strong style="color:var(--text)">Cloudflare Workers AI:</strong> audio is transcribed on this site’s Workers AI — no external key needed.';
+    } else {
+      hint.innerHTML = 'Pick a provider preset (OpenAI, Groq, Mistral) or Custom for any OpenAI-compatible endpoint. All fields are saved locally in your browser and proxied through the server — your token never reaches the frontend host directly.';
+    }
+  }
+}
+
+/** UI handler: user picks a transcription backend (persists the override). */
+export function setWhisperBackend(backend) {
+  state.whisper.apiBackend = backend;
+  localStorage.setItem('whisperApiBackend', backend);
+  updateWhisperBackendUI();
+}
+
+/** UI handler: user picks the shared 'app' provider preset. */
+export function setWhisperAppProvider(id) {
+  state.whisper.appProvider = id;
+  localStorage.setItem('whisperAppProvider', id);
 }
 
 /**
@@ -427,23 +549,44 @@ function updateAutoCaptionInfo() {
 // OpenAI-compatible endpoint the user configured (base URL + model ID).
 export async function transcribeViaAPI(audioSamples, apiKey) {
   const wavBytes = float32ToWAV(audioSamples, 16000);
-  const baseUrl = state.whisper.baseUrl || 'https://api.openai.com/v1';
-  const modelId = state.whisper.modelId || 'whisper-1';
-  addLog(`Sending audio to ${baseUrl} (model: ${modelId}) via server proxy…`, 'ok');
+  const backend = getActiveBackend();
+  const headers = { 'Content-Type': 'audio/wav', 'X-Transcribe-Backend': backend };
+
+  if (backend === 'app' || backend === 'workers-ai') {
+    // Shared backends are gated by the app token and use server-side keys.
+    if (APP_TRANSCRIBE_TOKEN) headers['X-App-Token'] = APP_TRANSCRIBE_TOKEN;
+    if (backend === 'app') {
+      const prov = state.whisper.appProvider || transcribeConfig.appProviders[0] || 'mistral';
+      headers['X-Transcribe-Provider'] = prov;
+      addLog(`Sending audio to the shared ${prov} backend…`, 'ok');
+    } else {
+      addLog('Sending audio to Cloudflare Workers AI…', 'ok');
+    }
+  } else {
+    // User's own key: proxy to the configured OpenAI-compatible endpoint.
+    const baseUrl = state.whisper.baseUrl || 'https://api.openai.com/v1';
+    const modelId = state.whisper.modelId || 'whisper-1';
+    headers['X-OpenAI-Key']      = apiKey;
+    headers['X-OpenAI-Base-URL'] = baseUrl;
+    headers['X-OpenAI-Model']    = modelId;
+    addLog(`Sending audio to ${baseUrl} (model: ${modelId}) via server proxy…`, 'ok');
+  }
+
   const resp = await fetch(_api('/api/transcribe'), {
     method:  'POST',
-    headers: {
-      'Content-Type':       'audio/wav',
-      'X-OpenAI-Key':       apiKey,
-      'X-OpenAI-Base-URL':  baseUrl,
-      'X-OpenAI-Model':     modelId,
-    },
+    headers,
     body: wavBytes,
   });
   if (!resp.ok) {
     const text = await resp.text();
     let msg = `API error (${resp.status})`;
-    try { const j = JSON.parse(text); msg = j.error?.message || j.error || msg; } catch (_) {}
+    try {
+      const j = JSON.parse(text);
+      msg = j.error?.message || j.error || msg;
+    } catch (_) {
+      // Plain-text error (e.g. the worker's token/availability messages).
+      if (text && text.trim()) msg = `${msg}: ${text.trim()}`;
+    }
     throw new Error(msg);
   }
   return await resp.text(); // SRT-formatted transcript

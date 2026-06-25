@@ -27,6 +27,7 @@ import { syncProcessBtn } from './ui.js';
 import {
   loadFFmpeg, setEngine, setWhisperSource, saveWhisperConfig, initWhisperConfigFields,
   setServerUrl, autoDetectServer, applyWhisperProvider,
+  setWhisperBackend, setWhisperAppProvider, fetchTranscribeConfig,
 } from './engine.js';
 
 // files.js
@@ -91,6 +92,7 @@ import { runBatch } from './batch.js';
 Object.assign(window, {
   // engine
   loadFFmpeg, setEngine, setWhisperSource, saveWhisperConfig, setServerUrl, applyWhisperProvider,
+  setWhisperBackend, setWhisperAppProvider,
   // files
   handleFile, handleFileInput, clearInput,
   onSubtitleFileChange, onOverlayFileChange, onMixAudioFileChange,
@@ -127,3 +129,4 @@ initWhisperConfigFields();   // populate OpenAI API token / base URL / model ID 
 initCaptionFonts();          // populate caption-font dropdowns + restore last-used bundled font
 initCaptionStyle();          // restore caption-style preset/overrides + draw the live swatch (after fonts)
 autoDetectServer();          // detect a local native-ffmpeg server (same-origin or configured loopback URL)
+fetchTranscribeConfig();     // learn which transcription backends this deployment offers (+ default)

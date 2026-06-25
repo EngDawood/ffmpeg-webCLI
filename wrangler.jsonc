@@ -7,6 +7,17 @@
     "directory": "./docs",
     "binding": "ASSETS"
   },
+  // Cloudflare Workers AI — powers the "Workers AI" transcription backend.
+  "ai": {
+    "binding": "AI"
+  },
+  "vars": {
+    // Default transcription backend when the frontend doesn't override it:
+    // "user" (visitor's own key), "app" (server-side secret key), or "workers-ai".
+    "APP_TRANSCRIBE_DEFAULT": "user",
+    // Workers AI speech-to-text model id used by the "workers-ai" backend.
+    "WORKERS_AI_MODEL": "@cf/openai/whisper"
+  },
   "observability": {
     "enabled": true
   }
