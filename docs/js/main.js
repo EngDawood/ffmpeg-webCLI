@@ -67,6 +67,9 @@ import { resetCropSelection } from './crop.js';
 // fonts.js (custom caption font picker — used by both subtitles and autocaption panels)
 import { onCaptionFontChange, clearCaptionFont, onCaptionFontSelect, initCaptionFonts } from './fonts.js';
 
+// captionstyles.js (caption look presets + advanced overrides — both panels)
+import { onCaptionPresetChange, onCaptionStyleInput, initCaptionStyle } from './captionstyles.js';
+
 // raw.js (updateRawPreview is called from HTML oninput)
 import { updateRawPreview } from './raw.js';
 
@@ -113,6 +116,8 @@ Object.assign(window, {
   clearLog, updateTrim, syncProcessBtn,
   // fonts
   onCaptionFontChange, clearCaptionFont, onCaptionFontSelect,
+  // caption styles
+  onCaptionPresetChange, onCaptionStyleInput,
 });
 
 // ── First-paint initialisation ──────────────────────────────────────────
@@ -120,4 +125,5 @@ updateTrim();
 initRawExamples();
 initWhisperConfigFields();   // populate OpenAI API token / base URL / model ID from localStorage
 initCaptionFonts();          // populate caption-font dropdowns + restore last-used bundled font
+initCaptionStyle();          // restore caption-style preset/overrides + draw the live swatch (after fonts)
 autoDetectServer();          // detect a local native-ffmpeg server (same-origin or configured loopback URL)

@@ -113,6 +113,20 @@ export const state = {
     customName:   null,   // original file name for display, e.g. 'myfont.ttf'
     customFace:   null,   // the FontFace object (so we can unload it)
   },
+
+  // Caption look for the canvas hard-burn renderer. A named preset fills
+  // these axes; editing any axis flips `preset` to 'custom'. Managed by
+  // captionstyles.js, consumed by subtitles.js. Persisted to
+  // localStorage('captionStyle'). Applies to HARD-BURN only.
+  caption: {
+    preset:   'clean',     // CAPTION_PRESETS key, or 'custom'
+    bg:       'box',       // 'box' | 'solid' | 'none'
+    color:    '#ffffff',   // text color (#RRGGBB)
+    opacity:  0.55,        // 0..1 background alpha (ignored when bg='none')
+    outline:  'med',       // 'none' | 'med' | 'heavy'
+    position: 'bottom',    // 'bottom' | 'center' | 'top'
+    weight:   'auto',      // 'auto' (bold for Arial, natural for custom font) | 'bold'
+  },
 };
 
 // ── Constants ──────────────────────────────────────────────────────────

@@ -7,6 +7,7 @@
 // to a PNG with the browser canvas, and overlay those PNGs on the video
 // via a chained ffmpeg `overlay` filter with `enable='between(t,...)'`.
 
+import { state } from './state.js';
 import { getVideoSize } from './helpers.js';
 import { getFF } from './engine.js';
 import { addLog } from './ui.js';
@@ -82,52 +83,155 @@ export function parseSubtitleCues(content) {
   return cues;
 }
 
+/** Clamp a number into the 0..1 range (alpha values). */
+function clamp01(n) { return Math.max(0, Math.min(1, Number(n) || 0)); }
+
+/** Trace a rounded rectangle path (does not fill/stroke). */
+function roundRect(ctx, x, y, w, h, r) {
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.arcTo(x + w, y, x + w, y + h, r);
+  ctx.arcTo(x + w, y + h, x, y + h, r);
+  ctx.arcTo(x, y + h, x, y, r);
+  ctx.arcTo(x, y, x + w, y, r);
+  ctx.closePath();
+}
+
+/**
+ * Draw one caption "tile" (background + outlined text) to a freshly-sized
+ * offscreen canvas and return it. Shared by the hard-burn overlay loop
+ * (exported to PNG) and the live style swatch in captionstyles.js, so the
+ * preview is pixel-for-pixel what gets burned in.
+ *
+ * @param {string[]} lines  already-wrapped lines of caption text
+ * @param {Object} o
+ * @param {string} [o.fontFamily]  CSS font-family
+ * @param {'bold'|'normal'} [o.weight]
+ * @param {number} [o.fontSize]
+ * @param {string} [o.color]   text color (#RRGGBB or CSS color)
+ * @param {'box'|'solid'|'none'} [o.bg]  background style
+ * @param {number} [o.opacity] background alpha 0..1 (box/solid only)
+ * @param {'none'|'med'|'heavy'} [o.outline]  outline weight
+ * @param {number} [o.lineHeight]
+ * @returns {HTMLCanvasElement}
+ */
+export function renderCaptionCanvas(lines, o = {}) {
+  const {
+    fontFamily = 'Arial, Helvetica, sans-serif',
+    weight = 'bold', fontSize = 48,
+    color = '#ffffff', bg = 'box', opacity = 0.55, outline = 'med',
+  } = o;
+  const lineHeight = o.lineHeight || Math.round(fontSize * 1.3);
+  const padX = Math.round(fontSize * 0.7);
+  const padY = Math.round(fontSize * 0.4);
+  const FONT = `${weight} ${fontSize}px ${fontFamily}`;
+
+  const m = document.createElement('canvas').getContext('2d');
+  m.font = FONT;
+  let textW = 0;
+  for (const l of lines) textW = Math.max(textW, m.measureText(l).width);
+
+  const boxW = Math.max(1, Math.ceil(textW) + 2 * padX);
+  const boxH = Math.max(1, lines.length * lineHeight + 2 * padY);
+
+  const c = document.createElement('canvas');
+  c.width = boxW;
+  c.height = boxH;
+  const cx = c.getContext('2d');
+
+  // Background (skipped entirely for 'none' → transparent tile).
+  if (bg !== 'none') {
+    const radius = bg === 'solid' ? Math.round(fontSize * 0.12) : Math.round(fontSize * 0.4);
+    const r = Math.min(radius, Math.floor(boxH / 2));
+    cx.fillStyle = `rgba(0,0,0,${clamp01(opacity)})`;
+    roundRect(cx, 0, 0, boxW, boxH, r);
+    cx.fill();
+  }
+
+  cx.font = FONT;
+  cx.textAlign = 'center';
+  cx.textBaseline = 'top';
+  cx.lineJoin = 'round';
+
+  // Outline pass (carries a soft drop-shadow for 'heavy').
+  if (outline !== 'none') {
+    cx.lineWidth = outline === 'heavy' ? Math.max(3, fontSize / 5) : Math.max(2, fontSize / 8);
+    cx.strokeStyle = 'rgba(0,0,0,0.95)';
+    if (outline === 'heavy') {
+      cx.shadowColor = 'rgba(0,0,0,0.6)';
+      cx.shadowBlur = Math.round(fontSize / 6);
+    }
+    for (let j = 0; j < lines.length; j++) cx.strokeText(lines[j], boxW / 2, padY + j * lineHeight);
+    cx.shadowColor = 'transparent';
+    cx.shadowBlur = 0;
+  }
+
+  // Readability guard: no box AND no outline would leave bare text that
+  // vanishes on matching backgrounds — give the fill a protective shadow.
+  if (bg === 'none' && outline === 'none') {
+    cx.shadowColor = 'rgba(0,0,0,0.85)';
+    cx.shadowBlur = Math.round(fontSize / 5);
+    cx.shadowOffsetY = Math.max(1, Math.round(fontSize / 24));
+  }
+
+  // Fill pass.
+  cx.fillStyle = color;
+  for (let j = 0; j < lines.length; j++) cx.fillText(lines[j], boxW / 2, padY + j * lineHeight);
+  cx.shadowColor = 'transparent';
+  cx.shadowBlur = 0;
+  cx.shadowOffsetY = 0;
+
+  return c;
+}
+
 /**
  * Render caption cues to per-cue PNG overlays with the browser canvas
  * and build the ffmpeg args (minus the output name) that burn them into
- * the video. Captions are centered horizontally and anchored near the
- * bottom; timing comes straight from the cue start/end via the overlay
- * `enable` expression, so it stays in sync. The visual look is chosen via
- * `styleChoice`:
- *   - 'pill'    — each wrapped line gets its own tight, fully-rounded
- *                 translucent background (social-caption style). [default]
- *   - 'box'     — all lines share one rounded translucent box (classic).
- *   - 'outline' — no background; bold white text with a heavy outline and
- *                 a soft drop shadow (cinematic).
- * Right-to-left text (Arabic, Hebrew, …) is detected per cue and the canvas
- * bidi direction is flipped so punctuation and digits land correctly.
+ * the video. Captions are centered horizontally; vertical placement and
+ * the visual look come from `styleOpts` (see captionstyles.js
+ * `getCaptionStyle`). Timing comes straight from the cue start/end via the
+ * overlay `enable` expression, so it stays in sync.
  *
  * @param {Array<{startSec:number,endSec:number,text:string}>} cues
  * @param {string} inName  ffmpeg virtual-FS name of the input video
  * @param {'small'|'medium'|'large'} fontSizeChoice
- * @param {'pill'|'box'|'outline'} [styleChoice='pill']
+ * @param {Object} [styleOpts]  { preset, bg, color, opacity, outline, position, weight }
  * @returns {Promise<string[]>} ffmpeg args (without the output filename)
  */
-export async function buildCaptionBurnArgs(cues, inName, fontSizeChoice, styleChoice = 'pill') {
+export async function buildCaptionBurnArgs(cues, inName, fontSizeChoice, styleOpts = {}) {
   const { w: vidW, h: vidH } = getVideoSize();
   const canvasW = vidW || 1920;
   const canvasH = vidH || 1080;
   // Font size scales with video height; the user choice nudges it up or down.
   const fontScale = { small: 0.7, medium: 1.0, large: 1.5 }[fontSizeChoice] || 1.0;
   const fontSize = Math.max(14, Math.round(canvasH * 0.045 * fontScale));
-  addLog(`Caption font size: ${fontSizeChoice || 'medium'} (${fontSize}px @ ${canvasW}x${canvasH})`, 'ok');
+
+  // Resolve style axes, defaulting to the classic "clean" look so callers
+  // that pass nothing keep the original behaviour.
+  const style = {
+    bg:       styleOpts.bg       || 'box',
+    color:    styleOpts.color    || '#ffffff',
+    opacity:  styleOpts.opacity == null ? 0.55 : styleOpts.opacity,
+    outline:  styleOpts.outline  || 'med',
+    position: styleOpts.position || 'bottom',
+    // weight is normally pre-resolved by getCaptionStyle(); fall back to the
+    // legacy rule (bold for default Arial, natural weight for custom fonts).
+    weight:   styleOpts.weight   || (hasCustomFont() ? 'normal' : 'bold'),
+  };
+
+  addLog(`Caption: ${styleOpts.preset || 'clean'} style, ${fontSizeChoice || 'medium'} size (${fontSize}px @ ${canvasW}x${canvasH})`, 'ok');
+  if (state.fonts.customName) {
+    addLog(`Using custom caption font: ${state.fonts.customName}`, 'ok');
+  }
+
+  const fontFamily = getCaptionFontFamily();
+  const FONT = `${style.weight} ${fontSize}px ${fontFamily}`;
   const lineHeight = Math.round(fontSize * 1.3);
-  const padX = Math.round(fontSize * 0.7);
-  const padY = Math.round(fontSize * 0.4);
   const maxTextWidth = canvasW * 0.86;   // wrap within ~86% of frame width
   const marginV = Math.round(canvasH * 0.045);
 
   const measureCtx = document.createElement('canvas').getContext('2d');
-  // Use the user's custom font if loaded (via fonts.js), else Arial bold.
-  // Custom fonts render at their natural weight (no synthetic bold);
-  // the default Arial path keeps `bold` for readability on video.
-  const fontFamily = getCaptionFontFamily();
-  const weight     = hasCustomFont() ? 'normal' : 'bold';
-  const FONT = `${weight} ${fontSize}px ${fontFamily}`;
   measureCtx.font = FONT;
-  if (state.fonts.customName) {
-    addLog(`Using custom caption font: ${state.fonts.customName}`, 'ok');
-  }
 
   const wrapText = (text) => {
     const out = [];
@@ -151,56 +255,31 @@ export async function buildCaptionBurnArgs(cues, inName, fontSizeChoice, styleCh
 
   for (let i = 0; i < cues.length; i++) {
     const lines = wrapText(cues[i].text.trim());
-    let textW = 0;
-    for (const l of lines) textW = Math.max(textW, measureCtx.measureText(l).width);
-    const boxW = Math.min(canvasW, Math.ceil(textW) + 2 * padX);
-    const boxH = lines.length * lineHeight + 2 * padY;
-
-    const c = document.createElement('canvas');
-    c.width = boxW;
-    c.height = boxH;
-    const cx = c.getContext('2d');
-
-    // Rounded translucent background.
-    const r = Math.min(Math.round(fontSize * 0.4), Math.floor(boxH / 2));
-    cx.fillStyle = 'rgba(0,0,0,0.55)';
-    cx.beginPath();
-    cx.moveTo(r, 0);
-    cx.arcTo(boxW, 0, boxW, boxH, r);
-    cx.arcTo(boxW, boxH, 0, boxH, r);
-    cx.arcTo(0, boxH, 0, 0, r);
-    cx.arcTo(0, 0, boxW, 0, r);
-    cx.closePath();
-    cx.fill();
-
-    // White text with a black outline so it reads on any background.
-    cx.font = FONT;
-    cx.textAlign = 'center';
-    cx.textBaseline = 'top';
-    cx.lineJoin = 'round';
-    cx.lineWidth = Math.max(2, fontSize / 8);
-    cx.strokeStyle = 'rgba(0,0,0,0.95)';
-    cx.fillStyle = '#ffffff';
-    for (let j = 0; j < lines.length; j++) {
-      const y = padY + j * lineHeight;
-      cx.strokeText(lines[j], boxW / 2, y);
-      cx.fillText(lines[j], boxW / 2, y);
-    }
-
-    const b64 = c.toDataURL('image/png').split(',')[1];
+    const tile = renderCaptionCanvas(lines, {
+      fontFamily, weight: style.weight, fontSize, lineHeight,
+      color: style.color, bg: style.bg, opacity: style.opacity, outline: style.outline,
+    });
+    const b64 = tile.toDataURL('image/png').split(',')[1];
     const bin = atob(b64);
     const bytes = new Uint8Array(bin.length);
     for (let k = 0; k < bin.length; k++) bytes[k] = bin.charCodeAt(k);
     await getFF().writeFile(`caption_${i}.png`, bytes);
   }
 
-  // Chain one timed overlay per cue: centered horizontally, near the bottom.
+  // Vertical placement of the overlay, per the chosen position axis.
+  const yExpr = style.position === 'top'
+    ? String(marginV)
+    : style.position === 'center'
+      ? '(main_h-overlay_h)/2'
+      : `main_h-overlay_h-${marginV}`;
+
+  // Chain one timed overlay per cue: centered horizontally, placed per axis.
   let filterComplex = '';
   for (let i = 0; i < cues.length; i++) {
     const src = i === 0 ? '[0:v]' : `[v${i - 1}]`;
     const start = cues[i].startSec.toFixed(3);
     const end = cues[i].endSec.toFixed(3);
-    filterComplex += `${src}[${i + 1}:v]overlay=(main_w-overlay_w)/2:main_h-overlay_h-${marginV}:enable='between(t,${start},${end})'[v${i}]`;
+    filterComplex += `${src}[${i + 1}:v]overlay=(main_w-overlay_w)/2:${yExpr}:enable='between(t,${start},${end})'[v${i}]`;
     if (i < cues.length - 1) filterComplex += ';';
   }
 

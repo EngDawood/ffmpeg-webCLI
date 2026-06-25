@@ -13,6 +13,7 @@ import { state } from './state.js';
 import { addLog, renderOutput } from './ui.js';
 import { getFF, fetchFile, isLoaded, loadFFmpeg, transcribeViaAPI } from './engine.js';
 import { parseSubtitleCues, buildCaptionBurnArgs, segmentsToSRT } from './subtitles.js';
+import { getCaptionStyle } from './captionstyles.js';
 
 /**
  * Update info text based on selected Whisper model.
@@ -260,7 +261,7 @@ export async function confirmAutoCaptionTranscript() {
         const cues = parseSubtitleCues(srtContent);
         if (!cues.length) throw new Error('No caption cues found to burn.');
         const fontSizeChoice = (document.getElementById('autoCaptionFontSize') || {}).value || 'medium';
-        const burnArgs = await buildCaptionBurnArgs(cues, inName, fontSizeChoice);
+        const burnArgs = await buildCaptionBurnArgs(cues, inName, fontSizeChoice, getCaptionStyle());
         args.push(...burnArgs, outName);
       }
     } else {

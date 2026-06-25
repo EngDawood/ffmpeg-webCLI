@@ -13,9 +13,9 @@
  * fully offline after first visit.
  */
 
-const CACHE_NAME = 'ffmpeg-editor-v6';
-const RUNTIME_CACHE = 'ffmpeg-editor-runtime-v6';
-const CDN_CACHE = 'ffmpeg-editor-cdn-v6';
+const CACHE_NAME = 'ffmpeg-editor-v7';
+const RUNTIME_CACHE = 'ffmpeg-editor-runtime-v7';
+const CDN_CACHE = 'ffmpeg-editor-cdn-v7';
 
 const STATIC_ASSETS = [
   '/',
@@ -35,6 +35,7 @@ const STATIC_ASSETS = [
   '/js/batch.js',
   '/js/stack.js',
   '/js/subtitles.js',
+  '/js/captionstyles.js',
   '/js/autocaption.js',
   '/js/process.js',
   '/js/pwa.js',

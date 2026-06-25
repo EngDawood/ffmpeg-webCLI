@@ -18,6 +18,7 @@ import {
   addLog, renderOutput, requestWakeLock, releaseWakeLock,
 } from './ui.js';
 import { parseSubtitleCues, buildCaptionBurnArgs } from './subtitles.js';
+import { getCaptionStyle } from './captionstyles.js';
 import {
   initializeAutoCaptionTranscriber, extractAudioAsWAV,
   updateAutoCaptionTranscript,
@@ -304,7 +305,7 @@ export async function runProcess() {
           addLog(`Parsed ${cues.length} subtitle cues`, 'ok');
 
           const fontSizeChoice = (document.getElementById('subsFontSize') || {}).value || 'medium';
-          const burnArgs = await buildCaptionBurnArgs(cues, inName, fontSizeChoice);
+          const burnArgs = await buildCaptionBurnArgs(cues, inName, fontSizeChoice, getCaptionStyle());
           args.push(...burnArgs);
         } else {
           // ── SOFT EMBED: Embed as subtitle stream (stream copy video/audio) ──
