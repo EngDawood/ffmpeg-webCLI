@@ -1,3 +1,4 @@
 .wrangler/
 .env
 .claude
+ffmpeg-caption-styles.js

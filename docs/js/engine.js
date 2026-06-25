@@ -65,17 +65,20 @@ export function setServerUrl(url) {
 }
 
 /**
- * On startup: fill the server-URL input and silently probe for a reachable
- * native-ffmpeg server (same-origin first, then the configured loopback URL).
- * If one is found and the user hasn't explicitly chosen Browser mode, switch
- * to Server mode and verify it. Otherwise stay on WASM. Safe to call once.
+ * On startup: fill the server-URL input. Only when the user has previously
+ * chosen Server mode (persisted as ffEngine='server') do we probe for a
+ * reachable native-ffmpeg server and reconnect to it. With no saved choice —
+ * or an explicit Browser choice — stay on WASM and never force-switch just
+ * because a server happens to be reachable. Safe to call once.
  */
 export async function autoDetectServer() {
   const input = document.getElementById('serverUrlInput');
   if (input) input.value = state.engine.serverUrl;
 
-  // Respect an explicit Browser-mode choice — don't override the user.
-  if (localStorage.getItem('ffEngine') === 'browser') return;
+  // Only auto-connect when the user has explicitly chosen Server mode before.
+  // No saved choice (or an explicit Browser choice) stays on Browser — never
+  // force-switch on a fresh visit just because a server happens to answer.
+  if (localStorage.getItem('ffEngine') !== 'server') return;
 
   const found = await resolveServerBase();
   if (!found) return;

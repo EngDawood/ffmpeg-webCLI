@@ -265,9 +265,18 @@ function handleAPI(urlPath, q, req, res) {
       const audioData = Buffer.concat(chunks);
       const boundary  = 'ffwcbnd' + Date.now();
 
+      // Request segment-level timestamps. OpenAI/Groq return segments with
+      // verbose_json by default, but Mistral (Voxtral) returns an empty
+      // segments array unless timestamp_granularities=segment is sent. Mistral
+      // expects the plain field name; OpenAI/Groq use the array form.
+      const granField = /mistral/i.test(hostname)
+        ? 'timestamp_granularities'
+        : 'timestamp_granularities[]';
+
       const head = Buffer.from(
         `--${boundary}\r\nContent-Disposition: form-data; name="model"\r\n\r\n${customModel}\r\n` +
         `--${boundary}\r\nContent-Disposition: form-data; name="response_format"\r\n\r\nverbose_json\r\n` +
+        `--${boundary}\r\nContent-Disposition: form-data; name="${granField}"\r\n\r\nsegment\r\n` +
         `--${boundary}\r\nContent-Disposition: form-data; name="file"; filename="audio.wav"\r\nContent-Type: audio/wav\r\n\r\n`
       );
       const tail      = Buffer.from(`\r\n--${boundary}--\r\n`);
@@ -383,10 +392,11 @@ function formatTime(seconds) {
 function verboseJsonToSRT(jsonStr) {
   try {
     const data = JSON.parse(jsonStr);
-    if (!data.segments || !Array.isArray(data.segments)) {
-      // If there are no segments, fall back to a single segment with the full text
+    if (!Array.isArray(data.segments) || data.segments.length === 0) {
+      // No segments (e.g. a provider that ignores timestamp_granularities):
+      // fall back to a single segment spanning the whole clip with the full text.
       const duration = data.duration || 0;
-      return `1\r\n00:00:00,000 --> ${formatTime(duration)}\r\n${data.text || ''}\r\n\r\n`;
+      return `1\r\n00:00:00,000 --> ${formatTime(duration)}\r\n${(data.text || '').trim()}\r\n\r\n`;
     }
     
     let srt = '';
